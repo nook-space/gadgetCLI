@@ -12,6 +12,7 @@ Auth stops at a URL the human opens. The CLI never holds third-party credentials
 ## MVP command set
 
 - `gadget login <url>` — sign in with password or "Continue with X". Store the token.
+- `gadget logout [--all]` — clear the stored token for a profile (local only; no server revoke).
 - `gadget doctor` — check reachability, auth, and API health. Say what does not work.
 - `gadget whoami` — print the signed-in identity.
 - `gadget list` — list workspaces on the instance.

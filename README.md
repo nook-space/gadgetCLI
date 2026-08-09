@@ -100,8 +100,9 @@ never connections.
   `--force` is last-writer-wins; the losing edit survives only in server history.
 - Files are UTF-8 text ≤ 1 MiB. Dotfiles, `node_modules/`, `mocks/`, and `*.gadget`
   archives never sync, in either direction.
-- Sessions: one login per instance profile (`--profile` to switch); tokens live in
-  `~/.config/gadget/config.json` (0600). Cloudflare Access instances are not supported yet.
+- Sessions: one login per instance profile (`--profile` to switch, one login per instance);
+  tokens live in `~/.config/gadget/config.json` (0600). `gadget logout [--all]` clears them
+  locally (no server-side revoke yet). Cloudflare Access instances are not supported yet.
 - Exit codes: 0 ok · 1 error · 2 usage · 3 auth · 4 conflict · 5 rpc.
 
 ## Development

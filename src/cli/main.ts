@@ -8,6 +8,7 @@ import { doctor } from "./commands/doctor.js";
 import { list } from "./commands/list.js";
 import { logs } from "./commands/logs.js";
 import { login } from "./commands/login.js";
+import { logout } from "./commands/logout.js";
 import { newProject } from "./commands/new.js";
 import { open } from "./commands/open.js";
 import { pull } from "./commands/pull.js";
@@ -45,6 +46,12 @@ program
   .command("whoami")
   .description("print the signed-in identity")
   .action(() => whoami(program.opts()));
+
+program
+  .command("logout")
+  .description("clear the stored token for a profile (--all for every instance)")
+  .option("--all", "log out of every instance")
+  .action((cmdOpts: { all?: boolean }) => logout({ ...program.opts(), ...cmdOpts }));
 
 program
   .command("list")
