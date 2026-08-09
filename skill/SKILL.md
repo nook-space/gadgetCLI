@@ -51,6 +51,10 @@ Rules the CLI enforces — work with them, not around them:
 
 ## Writing gadget code (the instance's idiom)
 
+This is NOT the ordinary Cloudflare Workers shape. Do not add wrangler config, a fetch
+handler, an index.html, or a build step — that shape will not run here. The platform
+supplies routing, hosting, sandboxing, and deploy; you supply only the files below.
+
 - `server.js` MUST export the class as `Gadget`, extending `DurableObject` from
   `"cloudflare:workers"`. No fetch handler; the platform routes for you.
 - Persist ALL state in `this.ctx.storage` (KV or SQL). Memory is cache only —

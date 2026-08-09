@@ -19,6 +19,26 @@ An independent community project, not affiliated with Cloudflare.
 - Agent-native: every flow has a non-interactive lane, `--json` where it matters,
   and errors are one cause plus one next step.
 
+## A gadget is not an ordinary Workers project
+
+Both run on workerd, Cloudflare's Workers runtime. The project shapes differ.
+Cloudflare OS supplies everything except your files — write the gadget shape natively:
+
+- Ordinary Worker: `wrangler.toml`, `export default { fetch }`, own routing, hosting, deploy.
+- Gadget: `server.js` exports one Durable Object class named `Gadget`. No config, no fetch
+  handler — the platform routes; your public API is the class's methods.
+- `client.js` builds the whole UI in a sandboxed iframe and calls the server through the
+  global `gadget` RPC stub. No `index.html`, no bundler, no build step.
+- No deploy step: `gadget push` lands code in the workspace's shared doc; the instance
+  restarts the gadget with it.
+- Gadget code cannot reach the network; external services arrive as bindings a human wires
+  in the workshop UI.
+
+This is the same shape the web editor and the in-app agent write — the terminal and the
+browser edit ONE shared document, in both directions (`push` up, `pull` down, live).
+The scaffold (`gadget new`) and `skill/SKILL.md` teach it; code in the ordinary-Worker
+shape will not run on the instance.
+
 ## Install
 
 ```sh
