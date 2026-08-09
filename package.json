@@ -19,7 +19,8 @@
     "check": "tsc --noEmit && oxlint src tests",
     "prepack": "pnpm build",
     "test": "pnpm build && vitest run",
-    "gadget": "node dist/cli/main.js"
+    "gadget": "node dist/cli/main.js",
+    "prepare": "pnpm build"
   },
   "dependencies": {
     "capnweb": "^0.8.0",
@@ -32,5 +33,13 @@
     "oxlint": "^1.76.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
-  }
+  },
+  "author": "amir.safaei915@gmail.com",
+  "keywords": [
+    "cloudflare-os",
+    "gadgets",
+    "cli",
+    "durable-objects",
+    "capnweb"
+  ]
 }

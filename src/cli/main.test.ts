@@ -33,6 +33,12 @@ describe("cli frame", () => {
     expect(r.stderr).toContain("hint: run: gadget --help");
   });
 
+  test("an unreachable instance exits 5 (rpc)", async () => {
+    const r = await gadget("doctor", "localhost:1");
+    expect(r.code).toBe(5);
+    expect(r.stderr).toContain("cannot reach the workshop api");
+  }, 45_000);
+
   test("SIGINT with an open session exits 130", async () => {
     // Open a session to a dead port (connection is async; the session object exists at once)
     // and hold the process alive; SIGINT must close sessions and exit 130.

@@ -1,5 +1,5 @@
-import { mkdirSync, readdirSync } from "node:fs";
-import { basename, resolve } from "node:path";
+import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { basename, join, resolve } from "node:path";
 import { CliError, EXIT } from "../../errors.js";
 import { isIgnored, materialize } from "../../sync/files.js";
 import { loadManifest, saveManifest } from "../../sync/state.js";
@@ -64,7 +64,9 @@ export async function newProject(
   const files = new Map(Object.entries(TEMPLATES));
   materialize(dir, files, files.keys());
   saveManifest(dir, { title: opts.title ?? basename(dir) });
+  // Make the git story executable: sync state and archives never belong in a repo.
+  writeFileSync(join(dir, ".gitignore"), ".gadget/\n*.gadget\nnode_modules/\n");
 
-  console.log(`scaffolded ${dirArg}: ${[...files.keys()].join(", ")}`);
+  console.log(`scaffolded ${dirArg}: ${[...files.keys()].join(", ")}, .gitignore`);
   console.log("next: edit the files, then run gadget push --new");
 }

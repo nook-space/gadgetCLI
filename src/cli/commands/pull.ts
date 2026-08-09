@@ -46,7 +46,15 @@ export async function pull(idArg: string | undefined, opts: PullOptions): Promis
   using overseer = await openWorkspace(ctx, workspaceId);
 
   const workpieces = await listWorkpieces(ctx.session, overseer);
-  const wanted = opts.gadget !== undefined ? Number(opts.gadget) : manifest?.gadget;
+  let wanted = manifest?.gadget;
+  if (opts.gadget !== undefined) {
+    wanted = Number(opts.gadget);
+    if (!Number.isInteger(wanted)) {
+      throw new CliError(`--gadget must be a workpiece id, not: ${opts.gadget}`, {
+        exitCode: EXIT.usage,
+      });
+    }
+  }
   const summary = resolveGadget(workpieces, wanted);
   const root = filesRootOf(summary);
 
@@ -68,7 +76,7 @@ export async function pull(idArg: string | undefined, opts: PullOptions): Promis
 
   if (conflicts.length > 0 && !opts.force) {
     throw new CliError(`pull would overwrite local changes: ${conflicts.join(", ")}`, {
-      hint: "commit or stash your work, then retry; --force overwrites these files",
+      hint: "copy your version of these files aside, run gadget pull --force, merge by hand, then push",
       exitCode: EXIT.conflict,
     });
   }

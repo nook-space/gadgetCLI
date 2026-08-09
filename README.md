@@ -34,7 +34,7 @@ gadget doctor                     # reachability, sign-in modes, auth state
 
 gadget new tracker && cd tracker  # scaffold: server.js, client.js, README.md
 gadget push --new                 # create workspace + gadget, link this directory
-gadget open                       # the workspace URL (auto-opens on a TTY)
+gadget open                       # the workspace URL (auto-opens on a macOS TTY)
 
 # the loop
 vim server.js
@@ -60,8 +60,9 @@ never connections.
 ## Behavior worth knowing
 
 - Conflicts: push refuses when the same gadget changed remotely (exit 4); pull refuses
-  rather than overwrite local edits. Identical content never conflicts. `--force` means
-  last-writer-wins; the losing edit survives only in server history.
+  rather than overwrite local edits. Different files: pull, then push. Same file on both
+  sides: copy yours aside, `pull --force`, merge, push. Identical content never conflicts.
+  `--force` is last-writer-wins; the losing edit survives only in server history.
 - Files are UTF-8 text ≤ 1 MiB. Dotfiles, `node_modules/`, `mocks/`, and `*.gadget`
   archives never sync, in either direction.
 - Sessions: one login per instance profile (`--profile` to switch); tokens live in

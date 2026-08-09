@@ -74,6 +74,9 @@ export type Session = {
   api: RpcStub<PublicApi>;
   origin: string;
   rpc<T>(promise: Promise<T>, what: string, ms?: number): Promise<T>;
+  // Register for transport death. Streaming commands need this: with the socket gone,
+  // nothing else holds the event loop, and a silent exit 0 would look like success.
+  onBroken(handler: (err: Error) => void): void;
   close(): void;
   [Symbol.dispose](): void;
 };
@@ -104,8 +107,10 @@ export function openSession(instance: string): Session {
   }
 
   let broken: Error | undefined;
+  const brokenHandlers: ((err: Error) => void)[] = [];
   api.onRpcBroken((err) => {
     broken = err instanceof Error ? err : new Error(String(err));
+    for (const handler of brokenHandlers) handler(broken);
   });
 
   const session: Session = {
@@ -124,6 +129,10 @@ export function openSession(instance: string): Session {
         }
         throw err;
       }
+    },
+    onBroken(handler: (err: Error) => void) {
+      if (broken !== undefined) handler(broken);
+      else brokenHandlers.push(handler);
     },
     close() {
       openSessions.delete(session);

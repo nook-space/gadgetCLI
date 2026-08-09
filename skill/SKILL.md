@@ -14,7 +14,8 @@ The instance runs it; you edit real files locally and sync them with the CLI.
 - `client.js` — the UI. Runs in a sandboxed iframe; builds ALL DOM itself (no index.html).
 - `README.md` — describe the gadget for the next agent.
 - `gadget.json` — the CLI's link to the instance. Do not edit by hand. Commit it to git.
-- `.gadget/` — sync state. Never touch. Gitignore it.
+- `.gadget/` — sync state. Never touch. The scaffold writes a `.gitignore` covering it;
+  run `git init` yourself if you want history (recommended — git is the revert story).
 
 ## Sign in once
 
@@ -31,8 +32,10 @@ The instance runs it; you edit real files locally and sync them with the CLI.
 
 Rules the CLI enforces — work with them, not around them:
 
-- Push refuses (exit 4) when the remote changed the same gadget: run `gadget pull`, resolve,
-  push again. Identical content never conflicts.
+- Push refuses (exit 4) when the remote changed the same gadget. Different files: run
+  `gadget pull`, then push. Same file changed on both sides: pull refuses too — copy your
+  version of the listed files aside, run `gadget pull --force`, merge by hand, then push.
+  Identical content never conflicts.
 - Pull refuses (exit 4) rather than overwrite your dirty files. `--force` overwrites — use it
   only when the human said so; the losing edit survives only in server history.
 - Files are UTF-8 text ≤ 1 MiB. Dotfiles, `node_modules/`, `mocks/`, `*.gadget` never sync.
@@ -69,5 +72,6 @@ Rules the CLI enforces — work with them, not around them:
 
 ## Exit codes and machine output
 
-0 ok · 1 error · 2 usage · 3 auth (log in) · 4 conflict (pull first) · 5 rpc/instance.
-`--json` on `list`, `status`, `doctor` for parsing. Errors print `error:` + one `hint:` line.
+0 ok · 1 error · 2 usage · 3 auth (log in) · 4 conflict (the hint names the fix) · 5 rpc/instance.
+`--json` on `list`, `status`, `doctor`, `whoami` (the flag works in any position).
+Errors print `error:` + one `hint:` line.

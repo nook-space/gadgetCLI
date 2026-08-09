@@ -6,7 +6,7 @@ import * as Y from "yjs";
 import { authenticate } from "../../src/remote/authed.js";
 import { openSession } from "../../src/remote/session.js";
 import {
-  buildUpdate, fetchCode, filesRootOf, listWorkpieces, openWorkspace, resolveGadget,
+  buildUpdate, fetchCode, filesRootOf, listWorkpieces, newWorkspace, openWorkspace, resolveGadget,
 } from "../../src/sync/engine.js";
 import { docFiles } from "../../src/sync/files.js";
 
@@ -43,9 +43,7 @@ export async function seedWorkspace(
 ): Promise<{ workspaceId: string; gadgetIds: number[] }> {
   using session = openSession(url);
   const authed = await authenticate(session, token, "seed");
-  using overseer = (await session.rpc(authed.newGadget(), "newGadget()")) as Awaited<
-    ReturnType<typeof openWorkspace>
-  >;
+  using overseer = await newWorkspace({ session, authed });
   await session.rpc(overseer.setTitle(title), "setTitle()");
   for (const g of gadgets) {
     using gadget = await session.rpc(overseer.createGadget(g.title), "createGadget()");

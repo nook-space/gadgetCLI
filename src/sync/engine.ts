@@ -9,7 +9,7 @@ import { isIgnored, validateFileName } from "./files.js";
 import type { Session } from "../remote/session.js";
 import type { AuthedContext } from "../remote/authed.js";
 import type {
-  CodeUpdate, Overseer, WorkpieceSummary,
+  CodeUpdate, ConsoleLogEvent, Overseer, WorkpieceSummary,
 } from "../remote/types.js";
 
 // Code sync can move real data; give it more room than a single call.
@@ -151,6 +151,49 @@ export async function fetchCode(
   );
   await session.rpc(ready, "code sync", SYNC_DEADLINE_MS);
   return version;
+}
+
+// Subscribe to the workspace's live console logs, delivering batches to `onEvent`.
+// Dispose the returned handle to stop. The local subscriber stub must outlive the
+// whole stream, so its disposal rides the handle, never a finally.
+export async function streamConsoleLogs(
+  session: Session,
+  overseer: RpcStub<Overseer>,
+  onEvent: (chatId: number | null, logs: ConsoleLogEvent[]) => void,
+): Promise<{ [Symbol.dispose](): void }> {
+  class Subscriber extends RpcTarget {
+    async event(chatId: number | null, logs: ConsoleLogEvent[]) {
+      onEvent(chatId, logs);
+    }
+  }
+  const subscriber = new RpcStub(new Subscriber());
+  try {
+    const subscription = await session.rpc(
+      overseer.subscribeToConsoleLogs(subscriber as never),
+      "subscribeToConsoleLogs()",
+    );
+    return {
+      [Symbol.dispose]() {
+        subscription[Symbol.dispose]();
+        subscriber[Symbol.dispose]();
+      },
+    };
+  } catch (err) {
+    subscriber[Symbol.dispose]();
+    throw err;
+  }
+}
+
+// Create a fresh workspace and return its Overseer stub. The cast is the one place
+// the RpcStub<Overseer> return type is reasserted (capnweb's typing loses it).
+export async function newWorkspace(ctx: {
+  session: Session;
+  authed: { newGadget(): Promise<unknown> };
+}): Promise<RpcStub<Overseer>> {
+  return (await ctx.session.rpc(
+    ctx.authed.newGadget() as Promise<unknown>,
+    "newGadget()",
+  )) as RpcStub<Overseer>;
 }
 
 // Encode `files` as one Yjs update against `doc`'s current root content: whole-file

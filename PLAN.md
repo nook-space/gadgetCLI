@@ -1,6 +1,6 @@
 # gadgetCLI — MVP Plan
 
-Status: all phases implemented; final review running (single comprehensive pass).
+Status: v0.1 — all phases implemented, critiqued, and fixed; final review absorbed.
 Style: docs use simplified technical english. One line per point. Docs are state, not story.
 
 ## Goal
@@ -224,7 +224,7 @@ Exit: `publish` prints a working `/blueprint/<id>` URL. Roundtrip files are iden
 - [x] 2. Write `skill/SKILL.md`: verbs, project shape, gadget idioms, push etiquette.
       AC: a fresh agent completes new → push --new → edit → push using only the skill.
 - [x] 3. Align exit codes and `--json` coverage.
-      AC: a documented code table (0 ok, 2 usage, 3 auth, 4 conflict, 5 rpc) matches tests.
+      AC: spawn tests assert 0/2/3/4/5 and SIGINT 130; the README table matches them.
 - [x] 4. Rewrite the README as the real quickstart (vision note until then).
       AC: quickstart commands run copy-paste clean against run-local.
 - [x] 5. Final ledger pass and end-to-end demo script.
@@ -279,7 +279,7 @@ Exit: an agent completes the edit loop using only the skill text.
 - Every RPC failure prints the cause and one next step; "no such method" suggests a CLI upgrade.
 - Use upstream's typed error codes (openGadget) in the renderer; distinguish null from thrown.
 - One RPC session per command; global deadline; dispose stubs in reverse order.
-- Human-first output on stdout; `--json` for agents on list/status.
+- Human-first output on stdout; `--json` for agents on list/status/doctor/whoami.
 - The main agent writes all code; subagents only critique.
 
 ## Trade-off ledger
@@ -289,6 +289,7 @@ Exit: an agent completes the edit loop using only the skill text.
 - Whole-file replace makes noisier CRDT history ↔ far simpler; history stays correct.
 - The freshness check is racy (no server CAS) ↔ no corruption and both sides converge,
   but a same-file race is last-writer-wins; the losing edit survives only in server history.
+  Same-file conflict recovery is copy-aside + pull --force + merge (diff --remote: idea.md).
   In-window cross-file foreign edits never advance the base silently (pre-resync base kept).
 - No Access mode in MVP ↔ avoids Origin-header and service-token complexity now.
 - Live-only logs ↔ upstream stores none; `logs` is follow-mode by definition.

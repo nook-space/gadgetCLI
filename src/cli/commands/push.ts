@@ -7,7 +7,7 @@ import type { RpcStub } from "capnweb";
 import { diffFiles } from "../../sync/diff.js";
 import { docFiles, readLocalFiles } from "../../sync/files.js";
 import {
-  buildUpdate, fetchCode, filesRootOf, listWorkpieces, openWorkspace, resolveGadget,
+  buildUpdate, fetchCode, filesRootOf, listWorkpieces, newWorkspace, openWorkspace, resolveGadget,
 } from "../../sync/engine.js";
 import { findProject, saveManifest, saveState } from "../../sync/state.js";
 import { requireLinkedProject } from "../project.js";
@@ -137,10 +137,7 @@ async function createWorkspace(ctx: AuthedContext, title: string): Promise<{
   gadgetId: number;
   root: string;
 }> {
-  const overseer = (await ctx.session.rpc(
-    ctx.authed.newGadget(),
-    "newGadget()",
-  )) as unknown as RpcStub<Overseer>;
+  const overseer = await newWorkspace(ctx);
   try {
     await ctx.session.rpc(overseer.setTitle(title), "setTitle()");
     // createGadget may consult the deployment's quick model for a binding name; give
