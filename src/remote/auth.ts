@@ -1,8 +1,9 @@
 // Client-side password hashing per the upstream spec on PublicApi.login():
 // argon2id over salt = SERVICE_SALT + utf8(username), parallelism 1, iterations 3,
 // memory 64 MiB, 32-byte digest. The server never sees the password, only this hash
-// (which it hashes again). The username is used as typed — no case folding — because
-// the server compares hashes verbatim and salts with what the user typed at signup.
+// (which it hashes again and compares verbatim). The username is used as typed — no
+// case folding — because the *reference client* salts with the typed name; the server
+// lowercases usernames only for account routing, never for hashing.
 
 import { argon2id } from "hash-wasm";
 import { SERVICE_SALT } from "./constants.js";

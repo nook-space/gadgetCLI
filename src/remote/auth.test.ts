@@ -31,6 +31,13 @@ describe("hashPassword", () => {
     expect(a).not.toEqual(b);
   });
 
+  test("known-answer vector pins SERVICE_SALT and parameters against drift", async () => {
+    // Derived once from the upstream spec (api.ts SERVICE_SALT + documented params).
+    // A change in the salt bytes, params, or library behavior fails this immediately.
+    const digest = Buffer.from(await hashPassword("alice", "correct horse battery")).toString("hex");
+    expect(digest).toBe("53c682eacea50c64a0e96904a5a94437835380af77c88cf8376824cd6591a0c1");
+  });
+
   test("multibyte usernames salt by utf8 bytes", async () => {
     const a = await hashPassword("amïr", "pw");
     const b = await hashPassword("amir", "pw");

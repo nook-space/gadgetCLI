@@ -53,7 +53,7 @@ export async function authenticate(
     )) as unknown as RpcStub<AuthenticatedApi>;
   } catch (err) {
     if (err instanceof CliError) throw err; // transport, already mapped
-    throw new CliError(`the instance rejected the stored session token`, {
+    throw new CliError(`the instance rejected the session token`, {
       cause: err,
       hint: `run: gadget login ${session.origin}`,
       exitCode: EXIT.auth,

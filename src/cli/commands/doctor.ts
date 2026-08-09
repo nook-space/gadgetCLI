@@ -1,4 +1,5 @@
 import { loadConfig, resolveProfile, type Config } from "../../config.js";
+import { CliError, EXIT } from "../../errors.js";
 import { authenticate } from "../../remote/authed.js";
 import { openSession } from "../../remote/session.js";
 import { printJson, printKv } from "../render.js";
@@ -37,13 +38,16 @@ export async function doctor(urlArg: string | undefined, opts: DoctorOptions): P
     ["signups", config.signupsEnabled ? "enabled" : "disabled"],
     ["auth", auth.ok
       ? `ok — ${auth.name} (${auth.workspaces} workspace${auth.workspaces === 1 ? "" : "s"})`
-      : `${auth.state} (run: gadget login ${session.origin})`],
+      : auth.state === "check failed"
+        ? `check failed: ${auth.detail}`
+        : `${auth.state} (run: gadget login ${session.origin})`],
   ]);
 }
 
 type AuthCheck =
   | { ok: true; state: "ok"; name: string; workspaces: number }
-  | { ok: false; state: "not logged in" | "token rejected" };
+  | { ok: false; state: "not logged in" | "token rejected" }
+  | { ok: false; state: "check failed"; detail: string };
 
 async function checkAuth(
   session: ReturnType<typeof openSession>,
@@ -51,9 +55,10 @@ async function checkAuth(
   origin: string,
   profileOpt?: string,
 ): Promise<AuthCheck> {
-  // The profile that matches this doctor run: --profile, else any profile for this origin.
+  // The profile that matches this doctor run: --profile (validated), else any profile
+  // for this origin.
   const entry = profileOpt
-    ? store.profiles[profileOpt]
+    ? resolveProfile(store, profileOpt).profile
     : Object.values(store.profiles).find((p) => p.url === origin);
   if (!entry?.token || entry.url !== origin) return { ok: false, state: "not logged in" };
 
@@ -64,7 +69,12 @@ async function checkAuth(
       session.rpc(authed.listGadgets(), "listGadgets()"),
     ]);
     return { ok: true, state: "ok", name: me.name, workspaces: gadgets.length };
-  } catch {
-    return { ok: false, state: "token rejected" };
+  } catch (err) {
+    // Only a genuine auth rejection prescribes re-login; anything else (timeout,
+    // server bug) is reported as what it is — a wrong prescription is worse than none.
+    if (err instanceof CliError && err.exitCode === EXIT.auth) {
+      return { ok: false, state: "token rejected" };
+    }
+    return { ok: false, state: "check failed", detail: err instanceof Error ? err.message : String(err) };
   }
 }
