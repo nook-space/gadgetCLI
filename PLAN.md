@@ -100,7 +100,8 @@ Each phase ends with a critique (see Working rules). Fix blockers before the nex
       PublicApi, AuthenticatedApi, Overseer, GadgetClient (subsets we call), CodeUpdate,
       CodeSubscriber, WorkpieceSummary, WorkpiecesSubscriber, console-log types, ServerConfig,
       AuthVendorInfo, AiChatAuthorInfo, LoginAttempt, GadgetMetadata, blueprint types.
-      AC: type-only imports; every name and signature matches upstream `api.ts` exactly.
+      AC: type-only imports; kept members follow the deviation policy in the file header
+      (subsets allowed, rewrites forbidden, any→unknown only), re-diffed at each refresh.
 - [x] 3. Build the session module: normalize `<url>` → `wss://…/api`, open with capnweb,
       map close and error paths, one global RPC deadline.
       AC: unit tests cover URL normalization and deadline; error mapping gives one-line causes.
@@ -231,7 +232,8 @@ Exit: an agent completes the edit loop using only the skill text.
 
 - The instance runs current cloudflare-os main (Aug 2026); the verified API surface holds.
 - Password or gatekeeper OAuth sign-in is enabled. Access mode is out of MVP scope.
-- Node ≥ 22 provides the global WebSocket. Dev machine uses `/opt/homebrew/bin/node` (24.5).
+- Node ≥ 22 provides the global WebSocket; openSession preflights it with a clear error.
+- Dev machine PATH node is 20: run every pnpm script with `PATH=/opt/homebrew/bin:$PATH` (24.5).
 - capnweb from Node: RPC calls and callback subscriptions are proven by upstream's own tests;
   ReadableStream transfer is not — it is the Phase 4 spike, with a named fallback.
 - Session tokens do not expire; one login per profile is enough.
@@ -245,6 +247,8 @@ Exit: an agent completes the edit loop using only the skill text.
 
 - One package with module boundaries; split into workspace packages only when the harness lands.
 - Vendor type-only API definitions; no build or runtime coupling to the upstream repo.
+- Spec'd runtime values (SERVICE_SALT, openGadget error codes) live in remote/constants.ts only.
+- Vendored deviation policy: member subsets allowed; rewrites forbidden; any→unknown deliberate.
 - Token store is a 0600 config file; keychain comes later.
 - State is one JSON file with the base doc as base64, written atomically.
 - Pull conflicts abort the whole pull; no per-file skip; a stale base never advances silently.

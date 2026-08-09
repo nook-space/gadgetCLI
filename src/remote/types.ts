@@ -1,7 +1,12 @@
 // Vendored, type-only subset of the Cloudflare OS frontend API.
-// Source: cloudflare-os packages/workshop-shared/src/api.ts @ 1cb5e3d (Aug 2026).
-// Rules: only members the CLI calls; names and signatures match upstream exactly;
-// object types may omit fields we never read. Refresh this file when upstream moves.
+// Source: cloudflare-os packages/workshop-shared/src/{api,gatekeeper}.ts @ 1cb5e3d (Aug 2026).
+//
+// Deviation policy (the whole policy — anything else is a bug):
+// - Interfaces may omit members we never call; object types may omit fields we never read.
+// - Kept members keep upstream's exact name, parameter list, and optionality. No rewrites.
+// - Deliberate narrowing: upstream `any` becomes `unknown` here. Nothing else changes.
+// - Refresh = re-diff every kept member against a pinned upstream commit; update the pin above.
+// Runtime values from the upstream spec (salt, error codes) live in constants.ts, never here.
 
 import type { RpcStub, RpcTarget } from "capnweb";
 
@@ -71,7 +76,7 @@ export interface ConsoleLogSubscriber {
 export type ConsoleLogEvent = {
   timestamp: Date;
   level: "debug" | "info" | "log" | "warn" | "error";
-  message: unknown[];
+  message: unknown[]; // upstream: any[]
 };
 
 // --- workspaces -------------------------------------------------------------
@@ -119,17 +124,51 @@ export type BlueprintGadgetSummary = {
 };
 
 export type BlueprintBindingAssignment = {
-  type: "gatekeeper" | "aiModel" | "agentSpawner";
-  [key: string]: unknown;
+  type: "gatekeeper";
+  accountId: number;
+  resourceUrl: string;
+} | {
+  type: "aiModel";
+  modelId: string;
+} | {
+  type: "agentSpawner";
+  modelId: string | null;
 };
+
+export type BlueprintScreenshotUpload = {
+  mimeType: "image/jpeg" | "image/png";
+  content: Uint8Array;
+};
+
+// --- observer configuration (non-owner opens) --------------------------------
+
+export type ObserverBindingNeed = {
+  gatekeeperId: WorkpieceId;
+  vendorId: string;
+  resourceTitle: string;
+  resourceUrl?: string;
+};
+
+export type ObserverAccountChoice = {
+  gatekeeperId: WorkpieceId;
+  accountId: number;
+};
+
+export interface ObserverConfigCallback extends RpcTarget {
+  configure(needs: ObserverBindingNeed[]): Promise<ObserverAccountChoice[]>;
+}
 
 // --- per-gadget capability --------------------------------------------------
 
 export interface GadgetClient extends RpcTarget {
   getId(): Promise<WorkpieceId>;
   getTitle(): Promise<string>;
-  connectToGadget(chatId?: number): Promise<RpcStub<unknown>>;
-  createBlueprint(title?: string, description?: string): Promise<BlueprintGadgetSummary>;
+  connectToGadget(chatId?: number): Promise<RpcStub<unknown>>; // upstream: RpcStub<any>
+  createBlueprint(
+    title?: string,
+    description?: string,
+    screenshot?: BlueprintScreenshotUpload,
+  ): Promise<BlueprintGadgetSummary>;
 }
 
 // --- workspace capability ---------------------------------------------------
@@ -157,7 +196,8 @@ export interface Overseer extends RpcTarget {
 export interface AuthenticatedApi extends RpcTarget {
   whoami(): Promise<AiChatAuthorInfo>;
   listGadgets(): Promise<GadgetMetadataWithTimestamps[]>;
-  openGadget(id: string, shareKey?: string): Promise<RpcStub<Overseer>>;
+  openGadget(id: string, shareKey?: string,
+             configureObservers?: RpcStub<ObserverConfigCallback>): Promise<RpcStub<Overseer>>;
   newGadget(): Promise<RpcStub<Overseer>>;
   newGadgetFromBlueprint(
     blueprintId: string,
