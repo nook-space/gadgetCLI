@@ -12,6 +12,13 @@ export function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
 }
 
+// For untrusted strings (blueprint titles, remote workspace titles) headed to the
+// terminal: control characters could inject escapes or fake lines. Replace, never trust.
+export function sanitize(text: string): string {
+  // oxlint-disable-next-line no-control-regex -- matching control chars is the point
+  return text.replaceAll(/[\u0000-\u001f\u007f]/g, "?");
+}
+
 // True when the failure smells like the instance speaking a newer API than this CLI.
 function looksLikeApiDrift(err: unknown): boolean {
   for (let e = err; e instanceof Error; e = e.cause as Error | undefined) {

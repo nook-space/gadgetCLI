@@ -8,7 +8,7 @@ import { gunzipSync, gzipSync } from "node:zlib";
 import * as Y from "yjs";
 import { CliError } from "../errors.js";
 import type { BlueprintMetadata } from "../remote/types.js";
-import { docFiles, validateFileName } from "../sync/files.js";
+import { docFiles, MAX_FILE_BYTES, validateFileName } from "../sync/files.js";
 
 export const ARCHIVE_MAGIC = 0xec2e2d3a2300e317n;
 export const ARCHIVE_VERSION = 1;
@@ -16,7 +16,7 @@ const PREFIX_BYTES = 24;
 export const MAX_METADATA_BYTES = 64 * 1024;
 export const MAX_CONTENT_BYTES = 32 * 1024 * 1024;
 // The compressed cap is upstream's; the decompression bound is ours, against zip bombs.
-const MAX_SNAPSHOT_BYTES = 8 * MAX_CONTENT_BYTES;
+const MAX_SNAPSHOT_BYTES = 4 * MAX_CONTENT_BYTES;
 
 export function packArchive(metadata: BlueprintMetadata, files: Map<string, string>): Uint8Array {
   const doc = new Y.Doc();
@@ -83,6 +83,13 @@ export function parseArchive(bytes: Uint8Array): {
   }
   metadata.created = new Date(metadata.created);
   metadata.lastUpdated = new Date(metadata.lastUpdated);
+  // Archives arrive from anywhere: normalize what downstream code touches, so a
+  // malformed archive fails as a clean parse error — never as a crash after writes.
+  if (typeof metadata.title !== "string") metadata.title = "untitled blueprint";
+  if (typeof metadata.bindings !== "object" || metadata.bindings === null ||
+      Array.isArray(metadata.bindings)) {
+    metadata.bindings = {};
+  }
 
   let snapshot: Buffer;
   try {
@@ -98,5 +105,11 @@ export function parseArchive(bytes: Uint8Array): {
   } catch (cause) {
     throw new CliError("archive content is not a valid code snapshot", { cause });
   }
-  return { metadata, files: docFiles(doc, "") };
+  const files = docFiles(doc, "");
+  for (const [name, content] of files) {
+    if (Buffer.byteLength(content) > MAX_FILE_BYTES) {
+      throw new CliError(`archive file too large (max 1 MiB): ${name}`);
+    }
+  }
+  return { metadata, files };
 }

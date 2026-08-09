@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import * as Y from "yjs";
 import { loadConfig, resolveProfile } from "../../config.js";
@@ -10,10 +10,11 @@ import { openAuthed } from "../../remote/authed.js";
 import { instanceOrigin, openSession } from "../../remote/session.js";
 import type { BlueprintMetadata } from "../../remote/types.js";
 import { diffFiles } from "../../sync/diff.js";
-import { docFiles, materialize, readLocalFiles } from "../../sync/files.js";
+import { docFiles, isIgnored, materialize, readLocalFiles } from "../../sync/files.js";
 import { fetchCode, filesRootOf, listWorkpieces, openWorkspace, resolveGadget } from "../../sync/engine.js";
 import { findProject, loadManifest, saveManifest } from "../../sync/state.js";
 import { requireLinkedProject } from "../project.js";
+import { sanitize } from "../render.js";
 
 // --- pack -------------------------------------------------------------------
 
@@ -133,7 +134,7 @@ export function resolveBlueprintRef(
 ): { origin: string; id: string } {
   if (/^https?:\/\//i.test(ref)) {
     const url = new URL(ref);
-    const match = /^\/blueprint\/([^/]+)$/.exec(url.pathname);
+    const match = /^\/blueprint\/([^/]+)\/?$/.exec(url.pathname);
     if (!match) {
       throw new CliError(`not a blueprint URL: ${ref}`, {
         hint: "expected https://<instance>/blueprint/<id>",
@@ -168,7 +169,7 @@ export async function install(ref: string, opts: { profile?: string }): Promise<
   const bindings = Object.keys(info.metadata.bindings);
   if (bindings.length > 0) {
     throw new CliError(
-      `this blueprint needs ${bindings.length} connection${bindings.length === 1 ? "" : "s"} (${bindings.join(", ")})`,
+      `this blueprint needs ${bindings.length} connection${bindings.length === 1 ? "" : "s"} (${sanitize(bindings.join(", "))})`,
       {
         hint: `wiring connections needs the browser: ${origin}/blueprint/${id}`,
       },
@@ -180,7 +181,7 @@ export async function install(ref: string, opts: { profile?: string }): Promise<
     "newGadgetFromBlueprint()",
   )) as Awaited<ReturnType<typeof openWorkspace>>;
   const metadata = await ctx.session.rpc(overseer.getMetadata(), "getMetadata()");
-  console.log(`created "${info.metadata.title}" from the blueprint`);
+  console.log(`created "${sanitize(info.metadata.title)}" from the blueprint`);
   console.log(`open: ${origin}/workspace/${metadata.id}`);
   console.log(`pull: gadget pull ${metadata.id}`);
 }
@@ -200,15 +201,18 @@ export async function newFrom(source: string, dir: string, title?: string): Prom
   }
 
   const { metadata, files } = parseArchive(bytes);
-  if (loadManifest(dir) || readLocalFiles(dir).size > 0) {
+  // Names-only emptiness probe, same as `gadget new` (content reads would misreport
+  // a jpeg as a UTF-8 error).
+  const occupied = readdirSync(dir).some((name) => !isIgnored(name));
+  if (loadManifest(dir) || occupied) {
     throw new CliError(`directory is not empty: ${dir}`, { exitCode: EXIT.usage });
   }
   materialize(dir, files, files.keys());
   saveManifest(dir, { title: title ?? metadata.title });
-  console.log(`unpacked "${metadata.title}": ${[...files.keys()].sort().join(", ")}`);
+  console.log(`unpacked "${sanitize(metadata.title)}": ${[...files.keys()].sort().join(", ")}`);
   const bindings = Object.keys(metadata.bindings);
   if (bindings.length > 0) {
-    console.log(`note: the blueprint declares connections (${bindings.join(", ")}); wire them in the workshop after push`);
+    console.log(`note: the blueprint declares connections (${sanitize(bindings.join(", "))}); wire them in the workshop after push`);
   }
   console.log("next: gadget push --new");
 }

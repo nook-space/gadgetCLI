@@ -27,14 +27,17 @@ export function isIgnored(path: string): boolean {
 }
 
 // A gadget file name is a relative path with forward slashes: no absolute paths, no
-// "..", no empty segments, no backslashes. Enforced in BOTH directions — a hostile
-// workspace doc must not write outside the project, and a local tree must not push
-// names the workshop cannot render.
+// "..", no empty segments, no backslashes, no control characters (a hostile name must
+// not be able to inject terminal escapes when printed, or newlines into listings).
+// Enforced in BOTH directions — a hostile workspace doc must not write outside the
+// project, and a local tree must not push names the workshop cannot render.
 export function validateFileName(name: string): void {
   const bad =
     name === "" ||
     name.startsWith("/") ||
     name.includes("\\") ||
+    // oxlint-disable-next-line no-control-regex -- rejecting control chars is the point
+    /[\u0000-\u001f\u007f]/.test(name) ||
     name.split("/").some((seg) => seg === "" || seg === "." || seg === "..");
   if (bad) throw new CliError(`unsafe file name in gadget: ${JSON.stringify(name)}`);
 }

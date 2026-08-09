@@ -212,7 +212,7 @@ Exit: two clients edit one gadget against the local instance and converge withou
 - [x] 6. Implement `gadget install <url|id>` and `new --from` on one shared resolution path.
       AC: integration — zero-binding blueprint instantiates; binding-ful prints the web URL.
 - [x] 7. Cross-validate against upstream: CLI pack → instance import; instance download → CLI read.
-      AC: file sets byte-identical both ways.
+      AC: file sets identical both ways (archive bytes differ by design: timestamps, client ids).
 
 Exit: `publish` prints a working `/blueprint/<id>` URL. Roundtrip files are identical.
 
@@ -271,6 +271,8 @@ Exit: an agent completes the edit loop using only the skill text.
 - v1 push does whole-file replaces; diff-splice comes later.
 - After push, resync from the server; warn when foreign updates landed during the window.
 - `publish` prefers the gadget-backed lane (versioned, stable URL) and requires a clean, pushed tree.
+- Publish's currency probe is advisory like push's freshness check — it inherits the same race.
+- Untrusted archive metadata is normalized on parse; untrusted strings are sanitized before printing.
 - Archives are create-only on the instance (`importBlueprint` mints a new id every time).
 - `install` runs headless only for zero-binding blueprints, by design.
 - `unpack` is not a verb; `new --from <file>` is the inverse of `pack`.
