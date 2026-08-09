@@ -1,7 +1,7 @@
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readdirSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import { CliError, EXIT } from "../../errors.js";
-import { materialize, readLocalFiles } from "../../sync/files.js";
+import { isIgnored, materialize } from "../../sync/files.js";
 import { loadManifest, saveManifest } from "../../sync/state.js";
 
 // The starter gadget follows the upstream idiom exactly: server.js exports a Durable
@@ -43,7 +43,10 @@ client.js renders it and calls the server over the \`gadget\` RPC stub.
 export async function newProject(dirArg: string, opts: { title?: string }): Promise<void> {
   const dir = resolve(process.cwd(), dirArg);
   mkdirSync(dir, { recursive: true });
-  if (loadManifest(dir) || readLocalFiles(dir).size > 0) {
+  // Probe emptiness by names only — reading content would misreport a jpeg in the
+  // directory as a UTF-8 error instead of "not empty".
+  const occupied = readdirSync(dir).some((name) => !isIgnored(name));
+  if (loadManifest(dir) || occupied) {
     throw new CliError(`directory is not empty: ${dir}`, {
       hint: "scaffold into a new or empty directory",
       exitCode: EXIT.usage,

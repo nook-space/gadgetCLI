@@ -1,6 +1,6 @@
 # gadgetCLI — MVP Plan
 
-Status: Phase 3 done; critique running. Phase 4 (blueprints) follows.
+Status: Phase 3 done and critiqued. Phase 4 (blueprints) in progress.
 Style: docs use simplified technical english. One line per point. Docs are state, not story.
 
 ## Goal
@@ -81,7 +81,9 @@ Push:
 3. Apply local files onto the base doc in one transaction. Capture `updateV2` events.
 4. Whole-file replace per changed file. Delete removed files. Merge events into one update.
 5. Send `updateCode(update)`. Resync the base so state matches the server.
-   If the resync shows foreign updates that landed during the push window, warn the user.
+   Identical remote/local text is convergence, never a conflict (crash windows self-heal).
+   If foreign edits landed inside the push window: warn AND keep the pre-resync base,
+   so the next push refuses until a real pull materializes them.
 
 Push `--new`: create the workspace, then the gadget; both get the project title. Write ids to `gadget.json`.
 
@@ -172,13 +174,15 @@ Exit: pull, status, and diff work against the local instance, including the conf
       `updateV2` capture, whole-file replace, deletes.
       AC: unit — merged update applies cleanly to a base copy; a no-op push emits nothing.
 - [x] 2. Implement `gadget push [--force]` with post-push resync and the race warning.
-      AC: integration — remote change → refusal with pull hint; `--force` pushes anyway.
+      AC: integration — remote change → refusal with pull hint; `--force` pushes anyway;
+      the race warning is driven live via the env-gated hold seam (GADGET_TEST_HOLD_AFTER_PUSH).
 - [x] 3. Implement `gadget push --new`: workspace + gadget created, both titled, ids written.
       AC: integration — immediate pull after `--new` is clean and identical.
 - [x] 4. Implement `gadget new <dir>`: scaffold server.js, client.js, README.md, gadget.json.
       AC: scaffold matches the upstream idiom (DO class `Gadget`, `gadget` stub client).
-- [x] 5. Implement `gadget open` (use upstream's typed openGadget error codes).
-      AC: prints the correct `/workspace/<id>` URL; missing/denied render their codes.
+- [x] 5. Implement `gadget open`; pull/push render upstream's typed openGadget codes.
+      AC: open prints the correct `/workspace/<id>` URL; pull of a missing workspace
+      exits 2 ("workspace not found"), of a stranger's exits 3 — live-tested.
 - [x] 6. Integration: two clients converge; refusal on remote change; delete propagation;
       multibyte content survives the roundtrip.
       AC: suite green on run-local.
@@ -246,6 +250,8 @@ Exit: an agent completes the edit loop using only the skill text.
 - `WorkpieceSummary.filesRoot` is authoritative for root naming.
 - A local test instance is available via `pnpm run-local` in `~/cloudflare-os`.
 - A project links one workspace and one gadget; more gadgets need an explicit `--gadget`.
+- Provisional-workspace reaping is documented upstream but not found implemented; the CLI
+  never relies on it — push --new links the directory before the first update lands.
 - Gadget files are UTF-8 text (upstream roots are Y.Text; binaries do not exist there today).
 - Usernames: alphanumeric starting with a letter; the server lowercases for routing and
   throws (not null) on invalid shapes; login is case-sensitive to the signup-typed name.
@@ -279,6 +285,7 @@ Exit: an agent completes the edit loop using only the skill text.
 - Whole-file replace makes noisier CRDT history ↔ far simpler; history stays correct.
 - The freshness check is racy (no server CAS) ↔ no corruption and both sides converge,
   but a same-file race is last-writer-wins; the losing edit survives only in server history.
+  In-window cross-file foreign edits never advance the base silently (pre-resync base kept).
 - No Access mode in MVP ↔ avoids Origin-header and service-token complexity now.
 - Live-only logs ↔ upstream stores none; `logs` is follow-mode by definition.
 - Zero-binding install only ↔ binding wiring needs browser OAuth; that is the security model.

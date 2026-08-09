@@ -57,9 +57,14 @@ export async function pull(idArg: string | undefined, opts: PullOptions): Promis
   const version = await fetchCode(ctx.session, overseer, doc, state?.version ?? 0);
   const remoteFiles = docFiles(doc, root);
 
+  const localFiles = readLocalFiles(dir);
   const remoteChanged = changedPaths(baseFiles, remoteFiles);
-  const dirty = changedPaths(baseFiles, readLocalFiles(dir));
-  const conflicts = [...remoteChanged].filter((p) => dirty.has(p)).sort();
+  const dirty = changedPaths(baseFiles, localFiles);
+  // Identical content is convergence, not a conflict — both sides reaching the same
+  // text (or a crash between push and its state save) must self-heal, not dead-end.
+  const conflicts = [...remoteChanged]
+    .filter((p) => dirty.has(p) && remoteFiles.get(p) !== localFiles.get(p))
+    .sort();
 
   if (conflicts.length > 0 && !opts.force) {
     throw new CliError(`pull would overwrite local changes: ${conflicts.join(", ")}`, {
@@ -74,6 +79,7 @@ export async function pull(idArg: string | undefined, opts: PullOptions): Promis
   // that --force re-pulls through.)
   materialize(dir, remoteFiles, remoteChanged);
   saveManifest(dir, {
+    ...manifest,
     title: summary.title,
     profile: profileName,
     workspace: workspaceId,
