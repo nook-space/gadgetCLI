@@ -46,6 +46,21 @@ pnpm install && pnpm build     # Node >= 22
 node dist/cli/main.js --help   # or: npm link → gadget --help
 ```
 
+`gadget --help` (and `gadget <command> --help`) lists every command — enough for an
+agent to discover the surface on its own.
+
+## Teach your coding agent
+
+The CLI ships an agent skill (verbs + the gadget idiom). Any shell-capable agent can
+drive `gadget`; the skill just teaches it how.
+
+```sh
+gadget skill                       # print the skill to stdout — redirect it anywhere:
+gadget skill >> AGENTS.md          #   e.g. into the cross-tool AGENTS.md file
+gadget skill install               # place it where Claude Code looks (~/.claude/skills/gadget/)
+gadget skill install --path .claude/skills/gadget/   # or a project dir, committed for the team
+```
+
 ## Quickstart
 
 ```sh

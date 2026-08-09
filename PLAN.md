@@ -24,6 +24,7 @@ Auth stops at a URL the human opens. The CLI never holds third-party credentials
 - `gadget pack` — convert a project tree to a `.gadget` archive. (`new --from <file>` is the inverse.)
 - `gadget blueprint publish` — publish a blueprint. Print its share URL.
 - `gadget install <url|id>` — create an own instance from a blueprint (zero-binding only).
+- `gadget skill` / `skill install [claude-code] [--path <p>]` — print/place the agent skill.
 
 Not in the MVP: see `idea.md`.
 

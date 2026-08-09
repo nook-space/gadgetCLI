@@ -12,6 +12,7 @@ import { newProject } from "./commands/new.js";
 import { open } from "./commands/open.js";
 import { pull } from "./commands/pull.js";
 import { push } from "./commands/push.js";
+import { installSkill, printSkill } from "./commands/skill.js";
 import { diff, status } from "./commands/status.js";
 import { whoami } from "./commands/whoami.js";
 import { VERSION } from "../version.js";
@@ -120,6 +121,17 @@ program
   .command("logs")
   .description("stream the workspace's live console logs (Ctrl-C to stop)")
   .action(() => logs(program.opts()));
+
+const skill = program
+  .command("skill")
+  .description("print the agent skill (teaches an agent to drive gadget) to stdout")
+  .action(() => printSkill());
+skill
+  .command("install [target]")
+  .description("install the skill for an agent (default target: claude-code)")
+  .option("--path <path>", "install to this file or directory instead")
+  .action((target: string | undefined, cmdOpts: { path?: string }) =>
+    installSkill(target, cmdOpts));
 
 try {
   await program.parseAsync();
