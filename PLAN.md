@@ -1,6 +1,6 @@
 # gadgetCLI — MVP Plan
 
-Status: Phase 2 done and critiqued. Phase 3 (write path) in progress.
+Status: Phase 3 done; critique running. Phase 4 (blueprints) follows.
 Style: docs use simplified technical english. One line per point. Docs are state, not story.
 
 ## Goal
@@ -168,18 +168,18 @@ Exit: pull, status, and diff work against the local instance, including the conf
 
 ### Phase 3 — Write path
 
-- [ ] 1. Build the push delta builder: fast-forward, text-compare refusal, one transaction,
+- [x] 1. Build the push delta builder: fast-forward, text-compare refusal, one transaction,
       `updateV2` capture, whole-file replace, deletes.
       AC: unit — merged update applies cleanly to a base copy; a no-op push emits nothing.
-- [ ] 2. Implement `gadget push [--force]` with post-push resync and the race warning.
+- [x] 2. Implement `gadget push [--force]` with post-push resync and the race warning.
       AC: integration — remote change → refusal with pull hint; `--force` pushes anyway.
-- [ ] 3. Implement `gadget push --new`: workspace + gadget created, both titled, ids written.
+- [x] 3. Implement `gadget push --new`: workspace + gadget created, both titled, ids written.
       AC: integration — immediate pull after `--new` is clean and identical.
-- [ ] 4. Implement `gadget new <dir>`: scaffold server.js, client.js, README.md, gadget.json.
+- [x] 4. Implement `gadget new <dir>`: scaffold server.js, client.js, README.md, gadget.json.
       AC: scaffold matches the upstream idiom (DO class `Gadget`, `gadget` stub client).
-- [ ] 5. Implement `gadget open` (use upstream's typed openGadget error codes).
+- [x] 5. Implement `gadget open` (use upstream's typed openGadget error codes).
       AC: prints the correct `/workspace/<id>` URL; missing/denied render their codes.
-- [ ] 6. Integration: two clients converge; refusal on remote change; delete propagation;
+- [x] 6. Integration: two clients converge; refusal on remote change; delete propagation;
       multibyte content survives the roundtrip.
       AC: suite green on run-local.
 
