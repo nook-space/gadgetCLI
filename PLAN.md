@@ -1,6 +1,6 @@
 # gadgetCLI — MVP Plan
 
-Status: Phase 1 done and critiqued. Phase 2 (read path) is next.
+Status: Phase 2 done; critique running. Phase 3 (write path) follows.
 Style: docs use simplified technical english. One line per point. Docs are state, not story.
 
 ## Goal
@@ -59,7 +59,8 @@ Runtime deps: `capnweb`, `yjs`, `hash-wasm`, `commander`. Nothing else.
 - `gadget.json` — project manifest: profile, workspace id, gadget (workpiece) id, title.
 - `.gadget/state.json` — base Y.Doc (base64 V2 update) + last synced version. Gitignored.
 - Tracked files = gadget root map keys ∪ local files, minus ignore set.
-- Ignore set: `gadget.json`, `.gadget/`, `.git/`, `node_modules/`, `mocks/`.
+- Ignore set: `gadget.json`, `node_modules/`, `mocks/` (top level) + dot-entries everywhere.
+- The manifest records the gadget's `filesRoot` at link time; offline commands never guess it.
 
 ## Core algorithms
 
@@ -144,21 +145,21 @@ local instance has no OAuth vendors.
 
 ### Phase 2 — Read path
 
-- [ ] 1. Build the state codec (`.gadget/state.json`, atomic) and manifest io (`gadget.json`).
+- [x] 1. Build the state codec (`.gadget/state.json`, atomic) and manifest io (`gadget.json`).
       AC: unit round-trip; corrupt state names the file in one line; temp+rename verified.
-- [ ] 2. Build the sync engine: open workspace, list workpieces, fetch code to `ready()`.
+- [x] 2. Build the sync engine: open workspace, list workpieces, fetch code to `ready()`.
       AC: integration — fetch a seeded workspace; stored version equals the server's last.
-- [ ] 3. Workpiece selection: one gadget → link it; several → error with an id+title list
+- [x] 3. Workpiece selection: one gadget → link it; several → error with an id+title list
       and require `--gadget`. Always take `filesRoot` from the summary; never compute it.
       AC: integration covers both paths and both root forms ("" and decimal).
-- [ ] 4. Build the materializer with path-safety guards, UTF-8 checks, and the ignore set.
+- [x] 4. Build the materializer with path-safety guards, UTF-8 checks, and the ignore set.
       AC: unit — traversal names rejected; non-UTF-8 rejected; ignore set skipped.
-- [ ] 5. Implement `gadget list` (with `--json`).
+- [x] 5. Implement `gadget list` (with `--json`).
       AC: integration — a created workspace appears; `--json` output parses and has ids.
-- [ ] 6. Implement `gadget pull [id]` with first-pull linking and the abort-on-conflict rule.
+- [x] 6. Implement `gadget pull [id]` with first-pull linking and the abort-on-conflict rule.
       AC: integration — first pull links the manifest; a conflict aborts, writes nothing,
       lists the files; `--force` overwrites.
-- [ ] 7. Build the diff engine. Implement `gadget status` and `gadget diff`.
+- [x] 7. Build the diff engine. Implement `gadget status` and `gadget diff`.
       AC: unit — added/modified/deleted detected, multibyte content safe, output stable.
 
 Exit: pull, status, and diff work against the local instance, including the conflict abort.
