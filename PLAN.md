@@ -34,7 +34,9 @@ Not in the MVP: see `idea.md`.
 - Never mix refactor and feature in one commit. Ledger edits ride with the commit that caused them.
 - Docs are state, not story: no history, no "we did X". A stale line is a bug. Update in the same commit.
 - Tasks carry checkboxes. A phase section holds only open findings; resolved ones live in git history.
-- Critique: one fresh Fable critic per phase, read-only. Triage: blocker / should-fix / nit / idea.
+- Critique: read-only Fable critics; triage: blocker / should-fix / nit / idea.
+  Phases 0-3 got one critic each; phases 4-5 share one final comprehensive reviewer
+  (protocol change by request) plus the Phase 4 critic already in flight.
 - Blockers and should-fixes are fixed (or explicitly ledgered) before the phase closes.
 - A durable rejection of a finding becomes a decision-ledger line with the reason.
 - Every bug becomes a regression test before it becomes a fix.
