@@ -1,6 +1,6 @@
 # gadgetCLI — MVP Plan
 
-Status: Phase 1 done; critique pending. Phase 2 (read path) is next.
+Status: Phase 1 done and critiqued. Phase 2 (read path) is next.
 Style: docs use simplified technical english. One line per point. Docs are state, not story.
 
 ## Goal
@@ -45,7 +45,7 @@ Not in the MVP: see `idea.md`.
 
 One npm package. Four internal modules. No runtime dependency on upstream code.
 
-- `src/cli/` — commands, output, errors. Knows nothing about the wire.
+- `src/cli/` — commands, output, errors. No transport/capnweb mechanics; typed RPC calls only.
 - `src/remote/` — capnweb session, vendored API types, auth. The only module that knows upstream.
 - `src/sync/` — Y.Doc state, materializer, diff, push delta builder.
 - `src/archive/` — `.gadget` codec (header + gzip + Yjs snapshot).
@@ -123,7 +123,8 @@ Exit: `gadget doctor <url>` reports the server's sign-in modes correctly.
 ### Phase 1 — Auth
 
 - [x] 1. Implement the argon2id password hash per the upstream spec.
-      Hash the raw typed username — no case folding (the server salts with the typed name).
+      Hash the raw typed username — no case folding (the reference client salts with the
+      typed name; the server compares hashes verbatim and lowercases only for routing).
       AC: unit test asserts salt = SERVICE_SALT + utf8(username) and a 32-byte digest.
 - [x] 2. Implement `gadget login <url>` password mode, with `--create` for signup.
       AC: integration — `--create` then re-login succeeds; wrong password hints at case.
@@ -137,8 +138,9 @@ Exit: `gadget doctor <url>` reports the server's sign-in modes correctly.
 - [x] 6. Integration test: create account, login, whoami against the local instance.
       AC: suite green on run-local.
 
-Exit: password mode passes integration tests. OAuth mode verified once by hand
-(or against the stub) — a bare local instance has no OAuth vendors.
+Exit: password mode passes integration tests. OAuth mode verified against an
+in-process capnweb loopback (stub tests cannot see stub-lifetime bugs) — a bare
+local instance has no OAuth vendors.
 
 ### Phase 2 — Read path
 
@@ -242,6 +244,8 @@ Exit: an agent completes the edit loop using only the skill text.
 - A local test instance is available via `pnpm run-local` in `~/cloudflare-os`.
 - A project links one workspace and one gadget; more gadgets need an explicit `--gadget`.
 - Gadget files are UTF-8 text (upstream roots are Y.Text; binaries do not exist there today).
+- Usernames: alphanumeric starting with a letter; the server lowercases for routing and
+  throws (not null) on invalid shapes; login is case-sensitive to the signup-typed name.
 
 ## Decision ledger
 

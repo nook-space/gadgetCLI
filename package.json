@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "check": "tsc --noEmit && oxlint src",
+    "check": "tsc --noEmit && oxlint src tests",
     "prepack": "pnpm build",
     "test": "pnpm build && vitest run",
     "gadget": "node dist/cli/main.js"
