@@ -2,6 +2,7 @@
 import { Command, CommanderError } from "commander";
 import { EXIT } from "../errors.js";
 import { renderError } from "./render.js";
+import { closePrompts } from "./prompt.js";
 import { doctor } from "./commands/doctor.js";
 import { login } from "./commands/login.js";
 import { whoami } from "./commands/whoami.js";
@@ -48,4 +49,6 @@ try {
   } else {
     process.exitCode = renderError(err);
   }
+} finally {
+  closePrompts();
 }
