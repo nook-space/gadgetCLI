@@ -6,7 +6,10 @@ import { closePrompts } from "./prompt.js";
 import { doctor } from "./commands/doctor.js";
 import { list } from "./commands/list.js";
 import { login } from "./commands/login.js";
+import { newProject } from "./commands/new.js";
+import { open } from "./commands/open.js";
 import { pull } from "./commands/pull.js";
+import { push } from "./commands/push.js";
 import { diff, status } from "./commands/status.js";
 import { whoami } from "./commands/whoami.js";
 import { VERSION } from "../version.js";
@@ -63,6 +66,28 @@ program
   .command("diff")
   .description("show local changes against the pulled base")
   .action(() => diff());
+
+program
+  .command("push")
+  .description("upload local changes as one CRDT update")
+  .option("--new", "create a workspace and gadget for this project first")
+  .option("--force", "push even when the remote changed (last writer wins)")
+  .option("--title <title>", "workspace/gadget title for --new (default: directory name)")
+  .action((cmdOpts: Record<string, string | boolean>) =>
+    push({ ...program.opts(), ...cmdOpts }));
+
+program
+  .command("new")
+  .argument("<dir>", "directory to scaffold")
+  .description("scaffold a gadget project (server.js, client.js, README.md)")
+  .option("--title <title>", "gadget title (default: directory name)")
+  .action((dir: string, cmdOpts: Record<string, string>) =>
+    newProject(dir, { ...program.opts(), ...cmdOpts }));
+
+program
+  .command("open")
+  .description("print (and open) the workspace URL")
+  .action(() => open(program.opts()));
 
 try {
   await program.parseAsync();
