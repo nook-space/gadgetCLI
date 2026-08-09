@@ -1,6 +1,6 @@
 # gadgetCLI — MVP Plan
 
-Status: Phase 3 done and critiqued. Phase 4 (blueprints) in progress.
+Status: Phase 4 done; critique running. Phase 5 (agent surface) follows.
 Style: docs use simplified technical english. One line per point. Docs are state, not story.
 
 ## Goal
@@ -191,25 +191,25 @@ Exit: two clients edit one gadget against the local instance and converge withou
 
 ### Phase 4 — Blueprints
 
-- [ ] 1. Build the archive codec. Mirror the upstream constants. Enforce the caps both ways
+- [x] 1. Build the archive codec. Mirror the upstream constants. Enforce the caps both ways
       (64 KiB metadata, 32 MiB content); bound allocations on untrusted input.
       AC: unit — magic/version/caps enforced; truncated and oversized archives rejected.
-- [ ] 2. `pack`: synthesize BlueprintMetadata offline — title/description from `gadget.json`,
+- [x] 2. `pack`: synthesize BlueprintMetadata offline — title/description from `gadget.json`,
       author from the profile, version 1, timestamps now, `bindings: {}`.
       AC: unit — metadata validates against the vendored type.
-- [ ] 3. Spike: verify ReadableStream transfer over capnweb from Node (upload + download).
+- [x] 3. Spike: verify ReadableStream transfer over capnweb from Node (upload + download).
       If it fails: keep `pack` + the gadget-backed publish lane; defer `new --from <url>`,
       archive `install`, and bare-archive publish; the upstream ask is already filed.
       AC: spike result recorded as one line in the assumption ledger.
-- [ ] 4. Implement `gadget blueprint publish` (linked): `createBlueprint` / `updateBlueprint`.
+- [x] 4. Implement `gadget blueprint publish` (linked): `createBlueprint` / `updateBlueprint`.
       Precondition: refuse when local changes are unpushed or the base is stale.
       AC: integration — publish prints a `/blueprint/<id>` that `getBlueprint` resolves;
       a dirty tree is refused.
-- [ ] 5. Implement bare-archive publish (`importBlueprint`) behind the same verb.
+- [x] 5. Implement bare-archive publish (`importBlueprint`) behind the same verb.
       AC: integration — returns a new id each time (create-only, by upstream design).
-- [ ] 6. Implement `gadget install <url|id>` and `new --from` on one shared resolution path.
+- [x] 6. Implement `gadget install <url|id>` and `new --from` on one shared resolution path.
       AC: integration — zero-binding blueprint instantiates; binding-ful prints the web URL.
-- [ ] 7. Cross-validate against upstream: CLI pack → instance import; instance download → CLI read.
+- [x] 7. Cross-validate against upstream: CLI pack → instance import; instance download → CLI read.
       AC: file sets byte-identical both ways.
 
 Exit: `publish` prints a working `/blueprint/<id>` URL. Roundtrip files are identical.
@@ -243,8 +243,8 @@ Exit: an agent completes the edit loop using only the skill text.
 - Password or gatekeeper OAuth sign-in is enabled. Access mode is out of MVP scope.
 - Node ≥ 22 provides the global WebSocket; openSession preflights it with a clear error.
 - Dev machine PATH node is 20: run every pnpm script with `PATH=/opt/homebrew/bin:$PATH` (24.5).
-- capnweb from Node: RPC calls and callback subscriptions are proven by upstream's own tests;
-  ReadableStream transfer is not — it is the Phase 4 spike, with a named fallback.
+- capnweb from Node: RPC, callback subscriptions, and ReadableStream transfer in both
+  directions are all proven live (the Phase 4 spike passed; no fallback needed).
 - Session tokens do not expire; one login per profile is enough.
 - `.gadget` archive format v1 is stable per `docs/blueprints.md`.
 - `WorkpieceSummary.filesRoot` is authoritative for root naming.
