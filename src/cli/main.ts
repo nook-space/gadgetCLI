@@ -4,7 +4,10 @@ import { EXIT } from "../errors.js";
 import { renderError } from "./render.js";
 import { closePrompts } from "./prompt.js";
 import { doctor } from "./commands/doctor.js";
+import { list } from "./commands/list.js";
 import { login } from "./commands/login.js";
+import { pull } from "./commands/pull.js";
+import { diff, status } from "./commands/status.js";
 import { whoami } from "./commands/whoami.js";
 import { VERSION } from "../version.js";
 
@@ -36,6 +39,30 @@ program
   .command("whoami")
   .description("print the signed-in identity")
   .action(() => whoami(program.opts()));
+
+program
+  .command("list")
+  .description("list workspaces on the instance")
+  .action(() => list(program.opts()));
+
+program
+  .command("pull")
+  .argument("[workspace-id]", "workspace to pull (links this directory on first pull)")
+  .description("download gadget code into the current directory")
+  .option("--gadget <id>", "workpiece id, when the workspace has several gadgets")
+  .option("--force", "overwrite conflicting local files")
+  .action((id: string | undefined, cmdOpts: Record<string, string | boolean>) =>
+    pull(id, { ...program.opts(), ...cmdOpts }));
+
+program
+  .command("status")
+  .description("list local changes against the pulled base")
+  .action(() => status(program.opts()));
+
+program
+  .command("diff")
+  .description("show local changes against the pulled base")
+  .action(() => diff());
 
 try {
   await program.parseAsync();
