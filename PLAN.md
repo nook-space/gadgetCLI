@@ -1,6 +1,6 @@
 # gadgetCLI — MVP Plan
 
-Status: Phase 4 done; critique running. Phase 5 (agent surface) follows.
+Status: all phases implemented; final review running (single comprehensive pass).
 Style: docs use simplified technical english. One line per point. Docs are state, not story.
 
 ## Goal
@@ -216,16 +216,16 @@ Exit: `publish` prints a working `/blueprint/<id>` URL. Roundtrip files are iden
 
 ### Phase 5 — Agent surface and polish
 
-- [ ] 1. Implement `gadget logs` (workspace-wide live stream; upstream stores none).
+- [x] 1. Implement `gadget logs` (workspace-wide live stream; upstream stores none).
       AC: integration — a log from gadget code (woken via `connectToGadget`) appears;
       Ctrl-C exits 0.
-- [ ] 2. Write `skill/SKILL.md`: verbs, project shape, gadget idioms, push etiquette.
+- [x] 2. Write `skill/SKILL.md`: verbs, project shape, gadget idioms, push etiquette.
       AC: a fresh agent completes new → push --new → edit → push using only the skill.
-- [ ] 3. Align exit codes and `--json` coverage.
+- [x] 3. Align exit codes and `--json` coverage.
       AC: a documented code table (0 ok, 2 usage, 3 auth, 4 conflict, 5 rpc) matches tests.
-- [ ] 4. Rewrite the README as the real quickstart (vision note until then).
+- [x] 4. Rewrite the README as the real quickstart (vision note until then).
       AC: quickstart commands run copy-paste clean against run-local.
-- [ ] 5. Final ledger pass and end-to-end demo script.
+- [x] 5. Final ledger pass and end-to-end demo script.
       AC: demo green; the phase critic confirms the ledgers match the code.
 
 Exit: an agent completes the edit loop using only the skill text.
