@@ -69,7 +69,7 @@ gadget doctor                     # reachability, sign-in modes, auth state
 
 gadget new tracker && cd tracker  # scaffold: server.js, client.js, README.md
 gadget push --new                 # create workspace + gadget, link this directory
-gadget open                       # the workspace URL (auto-opens on a macOS TTY)
+gadget open                       # the workspace URL (auto-opens a browser on mac/Linux TTYs)
 
 # the loop
 vim server.js
