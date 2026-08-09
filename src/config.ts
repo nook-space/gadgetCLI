@@ -1,7 +1,8 @@
 // Profile store: ~/.config/gadget/config.json (XDG_CONFIG_HOME respected).
 // Holds instance URLs and session tokens — dir 0700, file 0600, atomic writes.
 
-import { mkdirSync, readFileSync, renameSync, writeFileSync, chmodSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { CliError, EXIT } from "./errors.js";
@@ -14,31 +15,53 @@ export function configPath(): string {
   return join(base, "gadget", "config.json");
 }
 
+function isProfile(value: unknown): value is Profile {
+  return (
+    typeof value === "object" && value !== null &&
+    typeof (value as Profile).url === "string" &&
+    ["string", "undefined"].includes(typeof (value as Profile).token)
+  );
+}
+
 export function loadConfig(): Config {
   const path = configPath();
   let raw: string;
   try {
     raw = readFileSync(path, "utf8");
-  } catch {
-    return { profiles: {} };
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return { profiles: {} };
+    throw new CliError(`cannot read config file: ${path}`, { cause: err });
   }
+
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(raw) as Config;
-    if (typeof parsed !== "object" || parsed === null || typeof parsed.profiles !== "object") {
-      throw new Error("bad shape");
-    }
-    return parsed;
+    parsed = JSON.parse(raw);
   } catch {
     throw new CliError(`config file is not valid JSON: ${path}`, {
       hint: "fix or delete it, then run: gadget login <url>",
     });
   }
+
+  const config = parsed as Config;
+  const shapeOk =
+    typeof config === "object" && config !== null && !Array.isArray(config) &&
+    typeof config.profiles === "object" && config.profiles !== null &&
+    !Array.isArray(config.profiles) &&
+    Object.values(config.profiles).every(isProfile) &&
+    ["string", "undefined"].includes(typeof config.current);
+  if (!shapeOk) {
+    throw new CliError(`config file has an unexpected shape: ${path}`, {
+      hint: "fix or delete it, then run: gadget login <url>",
+    });
+  }
+  return config;
 }
 
 export function saveConfig(config: Config): void {
   const path = configPath();
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-  const tmp = `${path}.tmp`;
+  // Unique tmp name: concurrent invocations must not interleave on one tmp path.
+  const tmp = `${path}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
   writeFileSync(tmp, JSON.stringify(config, null, 2) + "\n", { mode: 0o600 });
   chmodSync(tmp, 0o600); // writeFileSync mode is ignored when the tmp file already exists
   renameSync(tmp, path);
@@ -61,8 +84,11 @@ export function resolveProfile(config: Config, name?: string): { name: string; p
   if (config.current) return pick(config.current);
   const names = Object.keys(config.profiles);
   if (names.length === 1) return pick(names[0]!);
-  throw new CliError(names.length === 0 ? "not logged in" : "several profiles; pick one", {
-    hint: names.length === 0 ? "run: gadget login <url>" : "pass --profile <name>",
-    exitCode: EXIT.auth,
+  if (names.length === 0) {
+    throw new CliError("not logged in", { hint: "run: gadget login <url>", exitCode: EXIT.auth });
+  }
+  throw new CliError("several profiles; pick one", {
+    hint: "pass --profile <name>",
+    exitCode: EXIT.usage,
   });
 }

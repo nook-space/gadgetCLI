@@ -33,7 +33,20 @@ describe("config store", () => {
   test("corrupt file fails with the file named", () => {
     mkdirSync(dirname(configPath()), { recursive: true });
     writeFileSync(configPath(), "{nope");
-    expect(() => loadConfig()).toThrow(/config\.json/);
+    expect(() => loadConfig()).toThrow(/not valid JSON.*config\.json/);
+  });
+
+  test("valid JSON with a wrong shape is rejected, not crashed on", () => {
+    mkdirSync(dirname(configPath()), { recursive: true });
+    for (const bad of ['{"profiles":null}', '{"profiles":[]}', '{"profiles":{"a":{"url":42}}}']) {
+      writeFileSync(configPath(), bad);
+      expect(() => loadConfig()).toThrow(/unexpected shape/);
+    }
+  });
+
+  test("unreadable file is an error, not a logged-out state", () => {
+    mkdirSync(configPath(), { recursive: true }); // a directory at the file's path → EISDIR
+    expect(() => loadConfig()).toThrow(/cannot read config file/);
   });
 });
 
@@ -50,8 +63,10 @@ describe("resolveProfile", () => {
     expect(resolveProfile({ profiles: { only: { url: "https://x" } } }).name).toBe("only");
   });
 
-  test("empty store says log in; several say pick", () => {
-    expect(() => resolveProfile({ profiles: {} })).toThrow(/not logged in/);
-    expect(() => resolveProfile(two)).toThrow(/pick one/);
+  test("empty store says log in (auth); several say pick (usage)", () => {
+    expect(() => resolveProfile({ profiles: {} })).toThrow(
+      expect.objectContaining({ exitCode: 3 }),
+    );
+    expect(() => resolveProfile(two)).toThrow(expect.objectContaining({ exitCode: 2 }));
   });
 });
