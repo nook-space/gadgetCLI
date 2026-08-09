@@ -1,0 +1,35 @@
+{
+  "name": "gadget-cli",
+  "version": "0.1.0",
+  "description": "Make and push gadgets to a self-hosted Cloudflare OS instance from the terminal.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "gadget": "./dist/cli/main.js"
+  },
+  "files": [
+    "dist",
+    "skill"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit && oxlint src",
+    "test": "vitest run",
+    "gadget": "node dist/cli/main.js"
+  },
+  "dependencies": {
+    "capnweb": "^0.8.0",
+    "commander": "^14.0.0",
+    "hash-wasm": "^4.12.0",
+    "yjs": "^13.6.27"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "oxlint": "^1.76.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}
