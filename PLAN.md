@@ -94,27 +94,27 @@ Each phase ends with a critique (see Working rules). Fix blockers before the nex
 
 ### Phase 0 — Skeleton and transport
 
-- [ ] 1. Init the package: TypeScript, ESM, vitest, oxlint, `gadget` bin.
+- [x] 1. Init the package: TypeScript, ESM, vitest, oxlint, `gadget` bin.
       AC: `pnpm check` and `pnpm test` pass; `gadget --version` prints the version.
-- [ ] 2. Vendor a trimmed, type-only API surface in `src/remote/types.ts`:
+- [x] 2. Vendor a trimmed, type-only API surface in `src/remote/types.ts`:
       PublicApi, AuthenticatedApi, Overseer, GadgetClient (subsets we call), CodeUpdate,
       CodeSubscriber, WorkpieceSummary, WorkpiecesSubscriber, console-log types, ServerConfig,
       AuthVendorInfo, AiChatAuthorInfo, LoginAttempt, GadgetMetadata, blueprint types.
       AC: type-only imports; every name and signature matches upstream `api.ts` exactly.
-- [ ] 3. Build the session module: normalize `<url>` → `wss://…/api`, open with capnweb,
+- [x] 3. Build the session module: normalize `<url>` → `wss://…/api`, open with capnweb,
       map close and error paths, one global RPC deadline.
       AC: unit tests cover URL normalization and deadline; error mapping gives one-line causes.
-- [ ] 4. Codify stub lifecycle in the session module: `using`/dispose in reverse order,
+- [x] 4. Codify stub lifecycle in the session module: `using`/dispose in reverse order,
       subscribers as RpcTarget classes, apply updates synchronously and in order,
       one session per command, dispose cleanly on Ctrl-C.
       AC: rules stated once in the module header; SIGINT closes the session in a live test.
-- [ ] 5. Build the profile store (`~/.config/gadget/config.json`, 0600, atomic writes).
+- [x] 5. Build the profile store (`~/.config/gadget/config.json`, 0600, atomic writes).
       AC: unit tests cover round-trip, file mode, missing file, corrupt file.
-- [ ] 6. Build the CLI frame: command registry, `--profile`, `--json`, one error renderer.
+- [x] 6. Build the CLI frame: command registry, `--profile`, `--json`, one error renderer.
       AC: unknown commands and thrown errors render as one line + one hint; exit code ≠ 0.
-- [ ] 7. Implement `gadget doctor` (unauthenticated: reach, sign-in modes, signups).
+- [x] 7. Implement `gadget doctor` (unauthenticated: reach, sign-in modes, signups).
       AC: correct report against the local instance; one-line failure against a dead port.
-- [ ] 8. Smoke-test against a local `pnpm run-local` instance.
+- [x] 8. Smoke-test against a local `pnpm run-local` instance.
       AC: transcript in the commit body; doctor exit code 0.
 
 Exit: `gadget doctor <url>` reports the server's sign-in modes correctly.
