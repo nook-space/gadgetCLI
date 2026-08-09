@@ -3,7 +3,8 @@
 // Lifecycle rules (the one place they live):
 // - Open late, close in a finally; `using` disposes stubs in reverse acquisition order.
 // - Subscriber callbacks are RpcTarget classes; apply update() synchronously and in order.
-// - Every RPC awaits under rpc() so a hung server cannot hang the CLI.
+// - Every RPC awaits under session.rpc() so a hung server cannot hang the CLI.
+// - Transport failures are mapped here, once; commands only ever see CliError or domain errors.
 // - SIGINT closes open sessions so the server drops subscriptions promptly.
 
 import { newWebSocketRpcSession } from "capnweb";
@@ -14,12 +15,14 @@ import type { PublicApi } from "./types.js";
 export const RPC_DEADLINE_MS = 30_000;
 
 // Instance URL → workshop origin. Bare hosts default to https; localhost defaults to http,
-// which is what `pnpm run-local` serves. Only origins are accepted: the workshop owns its
-// whole URL space, so a path almost certainly means a paste mistake.
+// which is what `pnpm run-local` serves. ws(s):// is accepted as an alias for http(s)://.
+// Only origins are accepted: the workshop owns its whole URL space, so a path almost
+// certainly means a paste mistake.
 export function instanceOrigin(input: string): string {
-  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(input)
-    ? input
-    : `${/^(localhost|127\.\d+\.\d+\.\d+|\[::1\])(:\d+)?$/i.test(input) ? "http" : "https"}://${input}`;
+  const aliased = input.replace(/^ws(s?):\/\//i, "http$1://");
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(aliased)
+    ? aliased
+    : `${/^(localhost|127\.\d+\.\d+\.\d+|\[::1\])(:\d+)?$/i.test(aliased) ? "http" : "https"}://${aliased}`;
   let url: URL;
   try {
     url = new URL(withScheme);
@@ -28,6 +31,12 @@ export function instanceOrigin(input: string): string {
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new CliError(`instance URL must be http(s): ${input}`, { exitCode: EXIT.usage });
+  }
+  if (url.username || url.password) {
+    throw new CliError(`instance URL must not contain credentials: ${input}`, {
+      hint: "log in with: gadget login <url>",
+      exitCode: EXIT.usage,
+    });
   }
   if ((url.pathname !== "/" && url.pathname !== "") || url.search || url.hash) {
     throw new CliError(`instance URL must be an origin, without a path: ${input}`, {
@@ -42,8 +51,8 @@ export function apiUrl(origin: string): string {
   return origin.replace(/^http/, "ws") + "/api";
 }
 
-// Await an RPC under the global deadline. `what` names the call in the timeout message.
-export function rpc<T>(promise: Promise<T>, what: string, ms = RPC_DEADLINE_MS): Promise<T> {
+// Race a promise against the global deadline. Pure; session.rpc composes it.
+export function withDeadline<T>(promise: Promise<T>, what: string, ms = RPC_DEADLINE_MS): Promise<T> {
   let timer: NodeJS.Timeout;
   const deadline = new Promise<never>((_, reject) => {
     timer = setTimeout(
@@ -64,6 +73,7 @@ export function rpc<T>(promise: Promise<T>, what: string, ms = RPC_DEADLINE_MS):
 export type Session = {
   api: RpcStub<PublicApi>;
   origin: string;
+  rpc<T>(promise: Promise<T>, what: string, ms?: number): Promise<T>;
   close(): void;
   [Symbol.dispose](): void;
 };
@@ -72,6 +82,12 @@ const openSessions = new Set<Session>();
 let sigintInstalled = false;
 
 export function openSession(instance: string): Session {
+  if (typeof WebSocket === "undefined") {
+    throw new CliError(`gadget needs Node >= 22 (found ${process.versions.node})`, {
+      hint: "this Node has no global WebSocket; upgrade Node",
+    });
+  }
+
   const origin = instanceOrigin(instance);
   let api: RpcStub<PublicApi>;
   try {
@@ -80,9 +96,28 @@ export function openSession(instance: string): Session {
     throw new CliError(`cannot connect to ${origin}`, { cause, exitCode: EXIT.rpc });
   }
 
+  let broken: Error | undefined;
+  api.onRpcBroken((err) => {
+    broken = err instanceof Error ? err : new Error(String(err));
+  });
+
   const session: Session = {
     api,
     origin,
+    async rpc<T>(promise: Promise<T>, what: string, ms = RPC_DEADLINE_MS): Promise<T> {
+      try {
+        return await withDeadline(promise, what, ms);
+      } catch (err) {
+        if (broken !== undefined && !(err instanceof CliError)) {
+          throw new CliError(`cannot reach the workshop api at ${origin}`, {
+            cause: broken,
+            hint: "check the URL; the instance must serve /api over WebSocket",
+            exitCode: EXIT.rpc,
+          });
+        }
+        throw err;
+      }
+    },
     close() {
       openSessions.delete(session);
       try {
