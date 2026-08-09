@@ -13,7 +13,9 @@ import { newProject } from "./commands/new.js";
 import { open } from "./commands/open.js";
 import { pull } from "./commands/pull.js";
 import { push } from "./commands/push.js";
-import { installSkill, printSkill } from "./commands/skill.js";
+import { installSkill, printSkill, refreshSkills, staleSkillInstalls } from "./commands/skill.js";
+import { update } from "./commands/update.js";
+import { noticeAndSchedule } from "../update.js";
 import { diff, status } from "./commands/status.js";
 import { whoami } from "./commands/whoami.js";
 import { VERSION } from "../version.js";
@@ -139,6 +141,16 @@ skill
   .option("--path <path>", "install to this file or directory instead")
   .action((target: string | undefined, cmdOpts: { path?: string }) =>
     installSkill(target, cmdOpts));
+skill
+  .command("refresh")
+  .description("re-copy the skill to every place it was installed")
+  .action(() => refreshSkills());
+
+program
+  .command("update")
+  .description("update gadget-cli (and refresh installed skills)")
+  .option("--check", "only report whether an update exists")
+  .action((cmdOpts: { check?: boolean }) => update(cmdOpts));
 
 try {
   await program.parseAsync();
@@ -154,4 +166,10 @@ try {
   }
 } finally {
   closePrompts();
+  // Last word of the run: a one-line notice from the previous run's cached check, and
+  // a detached check for the next one. Silent for machines (see update.ts).
+  noticeAndSchedule({
+    json: program.opts()["json"] === true,
+    skillStale: staleSkillInstalls(),
+  });
 }

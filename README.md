@@ -55,11 +55,29 @@ The CLI ships an agent skill (verbs + the gadget idiom). Any shell-capable agent
 drive `gadget`; the skill just teaches it how.
 
 ```sh
-gadget skill                       # print the skill to stdout — redirect it anywhere:
-gadget skill >> AGENTS.md          #   e.g. into the cross-tool AGENTS.md file
+gadget skill                       # print the skill to stdout
 gadget skill install               # place it where Claude Code looks (~/.claude/skills/gadget/)
 gadget skill install --path .claude/skills/gadget/   # or a project dir, committed for the team
+gadget skill refresh               # re-copy it everywhere it was installed
 ```
+
+Installs are recorded, so `gadget skill refresh` updates every copy after a CLI update —
+a copy is a snapshot, and a stale skill teaches an agent the wrong commands.
+
+## Staying up to date
+
+Once a day, in the background, the CLI checks npm for a newer release and caches the
+answer; the next run prints a one-line notice. It never updates anything on its own,
+and it stays silent for machines — no notice when stdout is not a terminal, in CI, with
+`--json`, or when `GADGET_NO_UPDATE_CHECK` / `NO_UPDATE_NOTIFIER` is set.
+
+```sh
+gadget update --check              # is there a newer release?
+gadget update                      # update (global npm installs), then refresh skills
+```
+
+For Homebrew, npx, or a source checkout, `gadget update` prints the right command for
+that install instead of guessing.
 
 ## Quickstart
 

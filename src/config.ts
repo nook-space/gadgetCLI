@@ -8,11 +8,21 @@ import { dirname, join } from "node:path";
 import { CliError, EXIT } from "./errors.js";
 
 export type Profile = { url: string; token?: string };
-export type Config = { current?: string; profiles: Record<string, Profile> };
+export type Config = {
+  current?: string;
+  profiles: Record<string, Profile>;
+  // Absolute paths the agent skill has been installed to, so `gadget skill refresh`
+  // can update every copy when the bundled skill changes. Paths only, no secrets.
+  skillInstalls?: string[];
+};
+
+export function configDir(): string {
+  const base = process.env["XDG_CONFIG_HOME"] || join(homedir(), ".config");
+  return join(base, "gadget");
+}
 
 export function configPath(): string {
-  const base = process.env["XDG_CONFIG_HOME"] || join(homedir(), ".config");
-  return join(base, "gadget", "config.json");
+  return join(configDir(), "config.json");
 }
 
 function isProfile(value: unknown): value is Profile {
@@ -48,7 +58,10 @@ export function loadConfig(): Config {
     typeof config.profiles === "object" && config.profiles !== null &&
     !Array.isArray(config.profiles) &&
     Object.values(config.profiles).every(isProfile) &&
-    ["string", "undefined"].includes(typeof config.current);
+    ["string", "undefined"].includes(typeof config.current) &&
+    (config.skillInstalls === undefined ||
+      (Array.isArray(config.skillInstalls) &&
+        config.skillInstalls.every((p) => typeof p === "string")));
   if (!shapeOk) {
     throw new CliError(`config file has an unexpected shape: ${path}`, {
       hint: "fix or delete it, then run: gadget login <url>",

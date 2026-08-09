@@ -33,6 +33,8 @@ One line per idea. Promote an idea by moving it into PLAN.md.
 - Blueprint screenshot upload on publish.
 - MCP mode — expose the CLI verbs as tools for non-CLI agents.
 - Single-file build; npm + Homebrew distribution.
+- `gadget skill install --link` — symlink instead of copy, for zero-maintenance refresh.
+- Ship the skill as a Claude Code plugin + marketplace.json (has its own update flow).
 - Workspace split: `gadget-remote` as a reusable client library.
 
 ## Upstream asks

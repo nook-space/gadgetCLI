@@ -25,7 +25,8 @@ Auth stops at a URL the human opens. The CLI never holds third-party credentials
 - `gadget pack` — convert a project tree to a `.gadget` archive. (`new --from <file>` is the inverse.)
 - `gadget blueprint publish` — publish a blueprint. Print its share URL.
 - `gadget install <url|id>` — create an own instance from a blueprint (zero-binding only).
-- `gadget skill` / `skill install [claude-code] [--path <p>]` — print/place the agent skill.
+- `gadget skill` / `skill install [claude-code] [--path <p>]` / `skill refresh` — the agent skill.
+- `gadget update [--check]` — explicit update; a cached background check notifies passively.
 
 Not in the MVP: see `idea.md`.
 
@@ -59,7 +60,8 @@ Runtime deps: `capnweb`, `yjs`, `hash-wasm`, `commander`. Nothing else.
 
 ## Data on disk
 
-- `~/.config/gadget/config.json` — profiles `{name → {url, token}}`. Mode 0600.
+- `~/.config/gadget/config.json` — profiles `{name → {url, token}}` + skill install paths. Mode 0600.
+- `~/.config/gadget/update-check.json` — cached registry answer (checkedAt + latest).
 - `gadget.json` — project manifest: profile, workspace id, gadget (workpiece) id, title.
 - `.gadget/state.json` — base Y.Doc (base64 V2 update) + last synced version. Gitignored.
 - Tracked files = gadget root map keys ∪ local files, minus ignore set.
@@ -283,6 +285,9 @@ Exit: an agent completes the edit loop using only the skill text.
   on OAuth-only instances, where first sign-in is the signup.
 - Use upstream's typed error codes (openGadget) in the renderer; distinguish null from thrown.
 - One RPC session per command; global deadline; dispose stubs in reverse order.
+- Update checks run detached and one run behind; the CLI never self-mutates — `gadget update` is explicit.
+- The notice is human-only: suppressed for non-TTY stdout, CI, --json, and the opt-out env vars.
+- Skill installs are recorded so `skill refresh` reaches every copy; copies are snapshots, not links.
 - Human-first output on stdout; `--json` for agents on list/status/doctor/whoami.
 - The main agent writes all code; subagents only critique.
 
@@ -300,3 +305,4 @@ Exit: an agent completes the edit loop using only the skill text.
 - Zero-binding install only ↔ binding wiring needs browser OAuth; that is the security model.
 - Single-gadget projects ↔ covers the common case; multi-gadget is additive later.
 - Text-only files ↔ matches upstream's Y.Text model; binary assets are an upstream feature first.
+- Update notice is one run stale ↔ zero latency and no new failure mode on the hot path.
