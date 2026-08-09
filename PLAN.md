@@ -1,6 +1,6 @@
 # gadgetCLI — MVP Plan
 
-Status: Phase 2 done; critique running. Phase 3 (write path) follows.
+Status: Phase 2 done and critiqued. Phase 3 (write path) in progress.
 Style: docs use simplified technical english. One line per point. Docs are state, not story.
 
 ## Goal
