@@ -2,7 +2,7 @@ import { loadConfig, saveConfig } from "../../config.js";
 import { CliError, EXIT } from "../../errors.js";
 import { hashPassword } from "../../remote/auth.js";
 import { authenticate } from "../../remote/authed.js";
-import { openSession, type Session } from "../../remote/session.js";
+import { instanceOrigin as instanceOriginOf, openSession, type Session } from "../../remote/session.js";
 import type { AuthVendorInfo, ServerConfig } from "../../remote/types.js";
 import { prompt, readPassword } from "../prompt.js";
 
@@ -30,7 +30,9 @@ export async function login(url: string, opts: LoginOptions): Promise<void> {
     config = await discovery.rpc(discovery.api.getServerConfig(), "getServerConfig()");
   }
 
-  if (opts.vendor || !config.passwordAuthEnabled) {
+  const plan = planLogin(config, opts, new URL(instanceOriginOf(url)).origin);
+
+  if (plan.mode === "oauth") {
     // OAuth keeps one session for the whole flow: attempt.wait() lives on it.
     using session = openSession(url);
     const token = await oauthLogin(session, config, opts.vendor);
@@ -40,10 +42,32 @@ export async function login(url: string, opts: LoginOptions): Promise<void> {
 
   const { username, hash } = await gatherCredentials(opts);
   using session = openSession(url);
-  const token = opts.create
+  const token = plan.create
     ? await createAccount(session, config, username, opts.name ?? username, hash)
     : await passwordLogin(session, username, hash);
   await finishLogin(session, token, opts.profile);
+}
+
+export type LoginPlan = { mode: "oauth" } | { mode: "password"; create: boolean };
+
+// Pure dispatch: which auth path a login takes, given what the instance offers and
+// what the user asked for. Throws a CliError for a request the instance can't honor
+// (notably --create against an OAuth-only instance, where first sign-in IS the signup).
+export function planLogin(config: ServerConfig, opts: LoginOptions, origin: string): LoginPlan {
+  if (opts.vendor || !config.passwordAuthEnabled) {
+    if (opts.create) {
+      const how = config.authVendors.length
+        ? `sign in with a provider (accounts are created automatically): ` +
+          `gadget login ${origin} --vendor ${config.authVendors[0]!.vendorId}`
+        : "this instance offers no password signup and no sign-in providers gadget-cli supports";
+      throw new CliError("this instance does not use password accounts, so --create does nothing", {
+        hint: how,
+        exitCode: EXIT.usage,
+      });
+    }
+    return { mode: "oauth" };
+  }
+  return { mode: "password", create: opts.create === true };
 }
 
 // Verify the token and learn who we are before storing anything.
@@ -130,6 +154,7 @@ export async function oauthLogin(
 
   console.error(`open this URL in a browser to sign in with ${vendor.displayName}:`);
   console.error(`  ${url}`);
+  console.error("(a new account is created automatically on first sign-in)");
   console.error("waiting for the sign-in to complete...");
   try {
     return await session.rpc(attemptStub.wait(), "sign-in", OAUTH_WAIT_MS);
@@ -137,6 +162,14 @@ export async function oauthLogin(
     if (err instanceof CliError && /timed out/.test(err.message)) {
       throw new CliError("the sign-in was not completed within 10 minutes", {
         hint: "run gadget login again",
+        exitCode: EXIT.auth,
+      });
+    }
+    // The server rejects a first-time sign-in when signups are closed; surface it
+    // as the auth condition it is, not a generic RPC error.
+    if (err instanceof Error && /sign-?up/i.test(err.message)) {
+      throw new CliError("this instance is not accepting new sign-ups", {
+        hint: "ask the instance admin for access, then sign in again",
         exitCode: EXIT.auth,
       });
     }

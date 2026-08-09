@@ -1,8 +1,57 @@
 import { newMessagePortRpcSession, RpcTarget } from "capnweb";
 import { describe, expect, test, vi } from "vitest";
 import { CliError } from "../../errors.js";
-import type { AuthVendorInfo, PublicApi } from "../../remote/types.js";
-import { oauthLogin, pickVendor } from "./login.js";
+import type { AuthVendorInfo, PublicApi, ServerConfig } from "../../remote/types.js";
+import { oauthLogin, pickVendor, planLogin } from "./login.js";
+
+const baseConfig: ServerConfig = {
+  authVendors: [],
+  passwordAuthEnabled: true,
+  cloudflareLimitsEnabled: false,
+  signupsEnabled: true,
+  siteName: "",
+  announcement: "",
+};
+
+describe("planLogin", () => {
+  const origin = "https://os.acme.dev";
+
+  test("password instance: plain login and --create both go password", () => {
+    expect(planLogin(baseConfig, {}, origin)).toEqual({ mode: "password", create: false });
+    expect(planLogin(baseConfig, { create: true }, origin)).toEqual({
+      mode: "password",
+      create: true,
+    });
+  });
+
+  test("--vendor always routes to OAuth, even where password auth exists", () => {
+    expect(planLogin(baseConfig, { vendor: "github" }, origin)).toEqual({ mode: "oauth" });
+  });
+
+  test("password-disabled instance routes to OAuth", () => {
+    const oauthOnly = { ...baseConfig, passwordAuthEnabled: false,
+      authVendors: [{ vendorId: "google", displayName: "Google" }] };
+    expect(planLogin(oauthOnly, {}, origin)).toEqual({ mode: "oauth" });
+  });
+
+  test("--create on an OAuth instance is refused with the provider recipe, not silently ignored", () => {
+    const oauthOnly = { ...baseConfig, passwordAuthEnabled: false,
+      authVendors: [{ vendorId: "google", displayName: "Google" }] };
+    expect(() => planLogin(oauthOnly, { create: true }, origin)).toThrow(
+      expect.objectContaining({
+        exitCode: 2,
+        hint: expect.stringContaining("--vendor google"),
+      }),
+    );
+  });
+
+  test("--create where nothing gadget-cli supports exists (Access-style) explains that", () => {
+    const noneSupported = { ...baseConfig, passwordAuthEnabled: false, authVendors: [] };
+    expect(() => planLogin(noneSupported, { create: true }, origin)).toThrow(
+      expect.objectContaining({ hint: expect.stringContaining("no password signup") }),
+    );
+  });
+});
 
 const github: AuthVendorInfo = { vendorId: "github", displayName: "GitHub" };
 const google: AuthVendorInfo = { vendorId: "google", displayName: "Google" };

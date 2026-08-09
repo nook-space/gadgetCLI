@@ -277,6 +277,8 @@ Exit: an agent completes the edit loop using only the skill text.
 - `install` runs headless only for zero-binding blueprints, by design.
 - `unpack` is not a verb; `new --from <file>` is the inverse of `pack`.
 - Every RPC failure prints the cause and one next step; "no such method" suggests a CLI upgrade.
+- Login dispatch is a pure planLogin(config,opts) decision; --create is refused (not ignored)
+  on OAuth-only instances, where first sign-in is the signup.
 - Use upstream's typed error codes (openGadget) in the renderer; distinguish null from thrown.
 - One RPC session per command; global deadline; dispose stubs in reverse order.
 - Human-first output on stdout; `--json` for agents on list/status/doctor/whoami.

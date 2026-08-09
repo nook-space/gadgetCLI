@@ -24,6 +24,7 @@ One line per idea. Promote an idea by moving it into PLAN.md.
 
 - Cloudflare Access mode — user JWT via `cloudflared access token`, `ws` socket with Origin header.
 - OS keychain token storage.
+- `gadget logout` — delete the local token (expected on shared/hosted machines).
 - `gadget logout` — delete the local token (server-side revocation needs upstream work).
 
 ## Engineering
