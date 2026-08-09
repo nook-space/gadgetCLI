@@ -20,11 +20,18 @@ export function changedPaths(from: Map<string, string>, to: Map<string, string>)
   return new Set(diffFiles(from, to).map((c) => c.path));
 }
 
-// Unified diff of one file (LCS on lines, 3 lines of context). Small inputs only —
-// gadget files are capped at 1 MiB and typically a few hundred lines.
+// Unified diff of one file: LCS on lines, 3 lines of context. Display only — the
+// output is not patch-appliable (no @@ ranges). The LCS table is O(lines²), so past
+// the cap the diff degrades to a whole-file replace block instead of an OOM.
+const MAX_DIFF_LINES = 3000;
+
 export function unifiedDiff(path: string, from: string, to: string): string {
   const a = from.split("\n");
   const b = to.split("\n");
+
+  if (a.length + b.length > MAX_DIFF_LINES * 2) {
+    return [`--- ${path}`, `+++ ${path}`, `@@ file too large to diff; contents replaced @@`].join("\n");
+  }
 
   // LCS table (a.length+1 x b.length+1).
   const lcs: number[][] = Array.from({ length: a.length + 1 }, () =>

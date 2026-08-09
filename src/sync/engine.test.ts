@@ -70,4 +70,18 @@ describe("buildUpdate", () => {
     const doc = new Y.Doc();
     expect(() => buildUpdate(doc, "", new Map([["../evil", "x"]]))).toThrow(/unsafe file name/);
   });
+
+  // Regression (phase-2 critique blocker): a push built from the filtered local tree
+  // must not delete ignored doc entries it cannot see.
+  test("ignored doc entries survive a push that omits them", () => {
+    const doc = new Y.Doc();
+    const root = doc.getMap<Y.Text>("");
+    root.set("server.js", new Y.Text("old"));
+    root.set(".prettierrc", new Y.Text("{}"));
+
+    const update = buildUpdate(doc, "", new Map([["server.js", "new"]]));
+    expect(update).not.toBeNull();
+    expect(root.get(".prettierrc")?.toString()).toBe("{}");
+    expect(root.get("server.js")?.toString()).toBe("new");
+  });
 });

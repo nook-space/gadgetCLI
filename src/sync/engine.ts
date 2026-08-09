@@ -5,7 +5,7 @@ import { RpcStub, RpcTarget } from "capnweb";
 import * as Y from "yjs";
 import { CliError, EXIT } from "../errors.js";
 import { OPEN_GADGET_ERROR_CODES } from "../remote/constants.js";
-import { validateFileName } from "./files.js";
+import { isIgnored, validateFileName } from "./files.js";
 import type { Session } from "../remote/session.js";
 import type { AuthedContext } from "../remote/authed.js";
 import type {
@@ -124,12 +124,15 @@ export async function fetchCode(
     broke = reject;
   });
 
+  let failed = false;
   class Subscriber extends RpcTarget {
     update(up: CodeUpdate) {
+      if (failed) return;
       try {
         Y.applyUpdateV2(doc, up.update);
         version = up.version;
       } catch (err) {
+        failed = true;
         broke(new CliError("the server sent an update the local base cannot apply", {
           cause: err,
           hint: "delete the .gadget directory and run gadget pull again",
@@ -177,7 +180,9 @@ export function buildUpdate(
         }
       }
       for (const name of map.keys()) {
-        if (!files.has(name)) map.delete(name);
+        // Ignored doc entries are invisible to the local tree (see files.isIgnored) —
+        // their absence from `files` means untracked, never deleted.
+        if (!files.has(name) && !isIgnored(name)) map.delete(name);
       }
     });
   } finally {

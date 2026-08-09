@@ -57,8 +57,10 @@ export async function seedWorkspace(
   await fetchCode(session, overseer, doc, 0);
 
   const gadgetIds: number[] = [];
-  for (const [at, g] of gadgets.entries()) {
-    const summary = workpieces.filter((w) => w.chatId === undefined)[at]!;
+  for (const g of gadgets) {
+    // Key by title: the workpiece-list delivery order is not a contract.
+    const summary = workpieces.find((w) => w.chatId === undefined && w.title === g.title);
+    if (!summary) throw new Error(`seeded gadget not listed: ${g.title}`);
     gadgetIds.push(summary.id);
     if (g.files) {
       const update = buildUpdate(doc, filesRootOf(summary), new Map(Object.entries(g.files)));

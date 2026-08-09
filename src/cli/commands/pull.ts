@@ -69,6 +69,9 @@ export async function pull(idArg: string | undefined, opts: PullOptions): Promis
   }
 
   // Order matters: a base must never advance past files it did not materialize.
+  // (No cross-file atomicity with the saves below: a crash here keeps the OLD base,
+  // which is safe — the next pull redoes the work, at worst reporting a conflict
+  // that --force re-pulls through.)
   materialize(dir, remoteFiles, remoteChanged);
   saveManifest(dir, {
     title: summary.title,

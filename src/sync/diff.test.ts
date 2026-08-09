@@ -29,4 +29,14 @@ describe("unifiedDiff", () => {
     expect(unifiedDiff("n.txt", "", "a\nb")).toContain("+a");
     expect(unifiedDiff("d.txt", "a\nb", "")).toContain("-b");
   });
+
+  // Regression (phase-2 critique should-fix): the LCS table is O(lines²); past the
+  // cap the diff degrades instead of OOMing.
+  test("very long files degrade to a replace block instead of an O(n·m) table", () => {
+    const lines = (n: number, tag: string) =>
+      Array.from({ length: n }, (_, i) => `${tag}${i}`).join("\n");
+    const out = unifiedDiff("big.txt", lines(20_000, "a"), lines(20_000, "b"));
+    expect(out).toContain("too large to diff");
+    expect(out.split("\n").length).toBeLessThan(5);
+  });
 });

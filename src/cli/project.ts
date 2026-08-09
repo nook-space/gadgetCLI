@@ -1,7 +1,6 @@
-// Command-side project context: locate the linked project and open its instance.
+// Command-side project context: locate the linked project.
 
 import { CliError, EXIT } from "../errors.js";
-import { openAuthed, type AuthedContext } from "../remote/authed.js";
 import { findProject, loadState, type Manifest, type ProjectState } from "../sync/state.js";
 
 export type LinkedProject = {
@@ -31,12 +30,4 @@ export function requireLinkedProject(cwd: string): LinkedProject {
     manifest: manifest as LinkedProject["manifest"],
     state: loadState(dir),
   };
-}
-
-// Open the instance a linked project belongs to. A --profile flag wins over the manifest.
-export function openProjectInstance(
-  project: LinkedProject,
-  profileFlag?: string,
-): Promise<AuthedContext> {
-  return openAuthed(profileFlag ?? project.manifest.profile);
 }
