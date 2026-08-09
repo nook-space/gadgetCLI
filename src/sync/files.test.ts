@@ -33,6 +33,7 @@ describe("readLocalFiles", () => {
     writeFileSync(join(dir, "node_modules", "x.js"), "n");
     mkdirSync(join(dir, "mocks"));
     writeFileSync(join(dir, "mocks", "env.js"), "m");
+    writeFileSync(join(dir, "export.gadget"), Buffer.from([0xec, 0x2e])); // pack output
 
     expect([...readLocalFiles(dir).keys()].sort()).toEqual(["lib/util.js", "server.js"]);
   });

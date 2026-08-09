@@ -17,12 +17,13 @@ const IGNORE_TOP_LEVEL = new Set([MANIFEST_FILE, "node_modules", "mocks"]);
 
 // The ONE tracking rule, applied to BOTH sides of every diff: local tree and doc.
 // Dot-prefixed entries are ignored at every level (.git, .gadget, .DS_Store — and the
-// git lane stays separate from the gadget lane). Ignored doc entries are never
+// git lane stays separate from the gadget lane), and so are *.gadget archives (pack's
+// output is an export, never gadget content). Ignored doc entries are never
 // materialized, diffed, or deleted by a push.
 export function isIgnored(path: string): boolean {
   const segments = path.split("/");
   if (IGNORE_TOP_LEVEL.has(segments[0]!)) return true;
-  return segments.some((seg) => seg.startsWith("."));
+  return segments.some((seg) => seg.startsWith(".") || seg.endsWith(".gadget"));
 }
 
 // A gadget file name is a relative path with forward slashes: no absolute paths, no

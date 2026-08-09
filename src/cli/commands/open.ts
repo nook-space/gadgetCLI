@@ -19,9 +19,11 @@ export async function open(opts: { profile?: string }): Promise<void> {
   console.log(url);
 
   // Best-effort convenience on macOS; the printed URL is the contract.
-  if (process.platform === "darwin") {
-    // The URL is printed; the browser is optional. The error listener matters:
-    // spawn failures arrive as async events that would otherwise crash the process.
+  // Launch a browser only for a human at an interactive terminal — never for tests,
+  // scripts, or agents (captured stdout), whose contract is the printed URL alone.
+  if (process.platform === "darwin" && process.stdout.isTTY) {
+    // The error listener matters: spawn failures arrive as async events that would
+    // otherwise crash the process.
     const child = spawn("open", [url], { stdio: "ignore", detached: true });
     child.once("error", () => {});
     child.unref();

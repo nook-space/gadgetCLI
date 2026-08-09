@@ -3,6 +3,7 @@ import { Command, CommanderError } from "commander";
 import { EXIT } from "../errors.js";
 import { renderError } from "./render.js";
 import { closePrompts } from "./prompt.js";
+import { install, pack, publish } from "./commands/blueprint.js";
 import { doctor } from "./commands/doctor.js";
 import { list } from "./commands/list.js";
 import { login } from "./commands/login.js";
@@ -81,8 +82,33 @@ program
   .argument("<dir>", "directory to scaffold")
   .description("scaffold a gadget project (server.js, client.js, README.md)")
   .option("--title <title>", "gadget title (default: directory name)")
+  .option("--from <blueprint>", "start from a blueprint URL, id, or .gadget file")
   .action((dir: string, cmdOpts: Record<string, string>) =>
     newProject(dir, { ...program.opts(), ...cmdOpts }));
+
+program
+  .command("pack")
+  .description("pack the project into a .gadget archive")
+  .option("--out <file>", "output path (default: <title>.gadget)")
+  .option("--title <title>", "blueprint title (default: the manifest's)")
+  .option("--description <text>", "blueprint description")
+  .action((cmdOpts: Record<string, string>) => pack({ ...program.opts(), ...cmdOpts }));
+
+const blueprint = program.command("blueprint").description("publish and manage blueprints");
+blueprint
+  .command("publish")
+  .description("publish this gadget as a blueprint (or import an archive)")
+  .option("--update <id>", "update an existing blueprint to the pushed code")
+  .option("--archive <file>", "import a .gadget archive instead (new id every time)")
+  .option("--title <title>", "blueprint title")
+  .option("--description <text>", "blueprint description")
+  .action((cmdOpts: Record<string, string>) => publish({ ...program.opts(), ...cmdOpts }));
+
+program
+  .command("install")
+  .argument("<blueprint>", "blueprint URL or id")
+  .description("create an own gadget from a blueprint (zero-binding blueprints only)")
+  .action((ref: string) => install(ref, program.opts()));
 
 program
   .command("open")

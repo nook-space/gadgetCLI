@@ -40,7 +40,10 @@ client.js renders it and calls the server over the \`gadget\` RPC stub.
 `,
 };
 
-export async function newProject(dirArg: string, opts: { title?: string }): Promise<void> {
+export async function newProject(
+  dirArg: string,
+  opts: { title?: string; from?: string },
+): Promise<void> {
   const dir = resolve(process.cwd(), dirArg);
   mkdirSync(dir, { recursive: true });
   // Probe emptiness by names only — reading content would misreport a jpeg in the
@@ -51,6 +54,11 @@ export async function newProject(dirArg: string, opts: { title?: string }): Prom
       hint: "scaffold into a new or empty directory",
       exitCode: EXIT.usage,
     });
+  }
+
+  if (opts.from) {
+    const { newFrom } = await import("./blueprint.js");
+    return newFrom(opts.from, dir, opts.title);
   }
 
   const files = new Map(Object.entries(TEMPLATES));

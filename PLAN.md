@@ -60,8 +60,8 @@ Runtime deps: `capnweb`, `yjs`, `hash-wasm`, `commander`. Nothing else.
 - `.gadget/state.json` — base Y.Doc (base64 V2 update) + last synced version. Gitignored.
 - Tracked files = gadget root map keys ∪ local files, minus ignore set.
 - Ignore rule (BOTH sides — local tree and doc): `gadget.json`, `node_modules/`, `mocks/`
-  (top level) + dot-entries everywhere. Ignored doc entries are never materialized,
-  diffed, or deleted by a push. `mocks/` is a CLI-local reservation for the future harness.
+  (top level) + dot-entries and `*.gadget` archives everywhere. Ignored doc entries are
+  never materialized, diffed, or deleted by a push. `mocks/` is reserved for the harness.
 - The manifest records the gadget's `filesRoot` at link time; offline commands never guess it.
 
 ## Core algorithms
