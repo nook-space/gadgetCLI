@@ -1,6 +1,6 @@
 # gadgetCLI — MVP Plan
 
-Status: approved; implementation in progress (Phase 0).
+Status: Phase 0 done and critiqued; Phase 1 (auth) is next.
 Style: docs use simplified technical english. One line per point. Docs are state, not story.
 
 ## Goal
