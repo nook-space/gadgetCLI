@@ -11,7 +11,8 @@
     "gadget": "./dist/cli/main.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "skill"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

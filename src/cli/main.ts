@@ -6,6 +6,7 @@ import { closePrompts } from "./prompt.js";
 import { install, pack, publish } from "./commands/blueprint.js";
 import { doctor } from "./commands/doctor.js";
 import { list } from "./commands/list.js";
+import { logs } from "./commands/logs.js";
 import { login } from "./commands/login.js";
 import { newProject } from "./commands/new.js";
 import { open } from "./commands/open.js";
@@ -114,6 +115,11 @@ program
   .command("open")
   .description("print (and open) the workspace URL")
   .action(() => open(program.opts()));
+
+program
+  .command("logs")
+  .description("stream the workspace's live console logs (Ctrl-C to stop)")
+  .action(() => logs(program.opts()));
 
 try {
   await program.parseAsync();

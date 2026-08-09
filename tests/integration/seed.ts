@@ -72,6 +72,29 @@ export async function seedWorkspace(
   return { workspaceId: metadata.id, gadgetIds };
 }
 
+// Wake a gadget by calling a method on its server class over connectToGadget —
+// the way a client UI (or the agent) would. Used to trigger console output.
+export async function wakeGadget(
+  url: string,
+  token: string,
+  workspaceId: string,
+  method: string,
+): Promise<void> {
+  using session = openSession(url);
+  const authed = await authenticate(session, token, "seed");
+  const ctx = { session, authed, profileName: "seed", origin: session.origin,
+    [Symbol.dispose]() {} };
+  using overseer = await openWorkspace(ctx, workspaceId);
+  const workpieces = await listWorkpieces(session, overseer);
+  const summary = resolveGadget(workpieces, undefined);
+  using gadget = await session.rpc(overseer.getGadget(summary.id), "getGadget()");
+  using stub = await session.rpc(gadget.connectToGadget(), "connectToGadget()");
+  await session.rpc(
+    (stub as unknown as Record<string, () => Promise<unknown>>)[method]!(),
+    `${method}()`,
+  );
+}
+
 // Apply a remote edit to one gadget's files, as a collaborator or the web editor would.
 export async function seedRemoteEdit(
   url: string,

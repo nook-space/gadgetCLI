@@ -80,6 +80,13 @@ export type Session = {
 
 const openSessions = new Set<Session>();
 let sigintInstalled = false;
+let sigintExitCode = 130;
+
+// Streaming commands (logs) end via Ctrl-C by design; for them the interrupt is
+// success, not failure. Default stays 130 for everything else.
+export function setSigintExitCode(code: number): void {
+  sigintExitCode = code;
+}
 
 export function openSession(instance: string): Session {
   if (typeof WebSocket === "undefined") {
@@ -136,7 +143,7 @@ export function openSession(instance: string): Session {
     sigintInstalled = true;
     process.on("SIGINT", () => {
       for (const s of openSessions) s.close();
-      process.exit(130);
+      process.exit(sigintExitCode);
     });
   }
   return session;
