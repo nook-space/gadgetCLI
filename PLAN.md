@@ -1,6 +1,6 @@
 # gadgetCLI — MVP Plan
 
-Status: Phase 0 done and critiqued; Phase 1 (auth) is next.
+Status: Phase 1 done; critique pending. Phase 2 (read path) is next.
 Style: docs use simplified technical english. One line per point. Docs are state, not story.
 
 ## Goal
@@ -122,19 +122,19 @@ Exit: `gadget doctor <url>` reports the server's sign-in modes correctly.
 
 ### Phase 1 — Auth
 
-- [ ] 1. Implement the argon2id password hash per the upstream spec.
+- [x] 1. Implement the argon2id password hash per the upstream spec.
       Hash the raw typed username — no case folding (the server salts with the typed name).
       AC: unit test asserts salt = SERVICE_SALT + utf8(username) and a 32-byte digest.
-- [ ] 2. Implement `gadget login <url>` password mode, with `--create` for signup.
+- [x] 2. Implement `gadget login <url>` password mode, with `--create` for signup.
       AC: integration — `--create` then re-login succeeds; wrong password hints at case.
-- [ ] 3. Implement OAuth mode: pick a vendor, print the URL, await `attempt.wait()`.
+- [x] 3. Implement OAuth mode: pick a vendor, print the URL, await `attempt.wait()`.
       AC: unit test drives a stubbed LoginAttempt; no-vendor instances explain themselves.
-- [ ] 4. Store the token per profile. Authenticate on every session open.
+- [x] 4. Store the token per profile. Authenticate on every session open.
       Distinguish null results (bad credentials, name taken) from thrown errors (mode disabled).
       AC: token survives a fresh process; a bad token maps to "run gadget login".
-- [ ] 5. Implement `gadget whoami`. Extend `doctor` with authenticated checks.
+- [x] 5. Implement `gadget whoami`. Extend `doctor` with authenticated checks.
       AC: doctor prints identity and workspace count when logged in.
-- [ ] 6. Integration test: create account, login, whoami against the local instance.
+- [x] 6. Integration test: create account, login, whoami against the local instance.
       AC: suite green on run-local.
 
 Exit: password mode passes integration tests. OAuth mode verified once by hand
