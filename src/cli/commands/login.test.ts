@@ -1,6 +1,7 @@
+import { newMessagePortRpcSession, RpcTarget } from "capnweb";
 import { describe, expect, test, vi } from "vitest";
 import { CliError } from "../../errors.js";
-import type { AuthVendorInfo } from "../../remote/types.js";
+import type { AuthVendorInfo, PublicApi } from "../../remote/types.js";
 import { oauthLogin, pickVendor } from "./login.js";
 
 const github: AuthVendorInfo = { vendorId: "github", displayName: "GitHub" };
@@ -47,5 +48,56 @@ describe("oauthLogin", () => {
     expect(disposed).toEqual(["attempt"]);
     expect(errLines.mock.calls.flat().join("\n")).toContain("https://idp.example/authorize");
     errLines.mockRestore();
+  });
+
+  // Regression (phase-1 critique blocker 2): disposing the attempt stub is upstream's
+  // documented "abandon the sign-in" signal, so it must not happen until wait() settles.
+  // This drives a REAL capnweb pair; a dispose-before-settle would reject with "abandoned".
+  test("does not send the abandon signal while waiting (real rpc pair)", async () => {
+    class FakeAttempt extends RpcTarget {
+      #resolve?: (token: string) => void;
+      #reject?: (err: Error) => void;
+      wait(): Promise<string> {
+        return new Promise((resolve, reject) => {
+          this.#resolve = resolve;
+          this.#reject = reject;
+        });
+      }
+      complete(token: string) {
+        this.#resolve?.(token);
+      }
+      [Symbol.dispose]() {
+        this.#reject?.(new Error("sign-in abandoned"));
+      }
+    }
+    class FakePublicApi extends RpcTarget {
+      constructor(readonly attempt: FakeAttempt) {
+        super();
+      }
+      async startGatekeeperLogin(_vendorId: string) {
+        return { url: "https://idp.example/authorize", attempt: this.attempt };
+      }
+    }
+
+    const { port1, port2 } = new MessageChannel();
+    const attempt = new FakeAttempt();
+    newMessagePortRpcSession(port1, new FakePublicApi(attempt));
+    const api = newMessagePortRpcSession<PublicApi>(port2);
+    const errLines = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      const session = { api, rpc: <T>(p: Promise<T>) => p };
+      const pending = oauthLogin(session as never, { authVendors: [github] }, undefined);
+      // Let the using-scope exit and any release message travel the wire first;
+      // the human completes the sign-in strictly afterwards.
+      await new Promise((r) => setTimeout(r, 100));
+      attempt.complete("user@x:secret");
+      await expect(pending).resolves.toBe("user@x:secret");
+    } finally {
+      errLines.mockRestore();
+      api[Symbol.dispose]();
+      port1.close();
+      port2.close();
+    }
   });
 });
