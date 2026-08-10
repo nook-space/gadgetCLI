@@ -3,7 +3,9 @@ name: ci
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md"]
   pull_request:
+    paths-ignore: ["**.md"]
 
 # A newer push to the same branch/PR makes the older run pointless.
 concurrency:
@@ -11,16 +13,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Every push and PR: Linux on both supported Node versions. Fast and cheap.
+  # Integration tests skip themselves when GADGET_TEST_URL is unset, so this needs
+  # no instance; the integration workflow covers the wire.
   check:
-    # The matrix is the claim: mac and Linux, Node 22 (minimum) and 24 (current).
-    # Integration tests skip themselves when GADGET_TEST_URL is unset, so this job
-    # stays fast and needs no instance; the integration workflow covers the wire.
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
         node: [22, 24]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -34,9 +35,28 @@ jobs:
       - run: pnpm check
       - run: pnpm test
 
+  # macOS bills at 10x Linux, so it runs on main (and nightly, via integration.yml)
+  # rather than on every PR push. One leg on our minimum Node is enough to catch a
+  # platform break; the daily cadence is what matters, not per-commit coverage.
+  check-macos:
+    if: github.event_name == 'push'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm test
+
+  # Build the exact tarball a release would publish, so every PR can be installed
+  # and inspected before it is tagged.
   package:
-    # Build the exact tarball a release would publish, so every PR can be installed
-    # and inspected before it is tagged.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,3 +79,4 @@ jobs:
         with:
           name: package-tarball
           path: "*.tgz"
+          retention-days: 14

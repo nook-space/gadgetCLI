@@ -2,6 +2,7 @@ import { loadConfig, resolveProfile, type Config } from "../../config.js";
 import { CliError, EXIT } from "../../errors.js";
 import { authenticate } from "../../remote/authed.js";
 import { openSession } from "../../remote/session.js";
+import { VERSION } from "../../version.js";
 import { printJson, printKv } from "../render.js";
 
 export type DoctorOptions = { profile?: string; json?: boolean };
@@ -20,6 +21,10 @@ export async function doctor(urlArg: string | undefined, opts: DoctorOptions): P
 
   const auth = await checkAuth(session, store, session.origin, opts.profile);
 
+  // Node's major version is the one client-side prerequisite (the global WebSocket
+  // this CLI's transport needs arrived in 22), so a diagnosis should always report it.
+  const node = process.versions.node;
+
   if (opts.json) {
     printJson({
       instance: session.origin,
@@ -28,10 +33,12 @@ export async function doctor(urlArg: string | undefined, opts: DoctorOptions): P
       signupsEnabled: config.signupsEnabled,
       siteName: config.siteName,
       auth,
+      cli: { version: VERSION, node },
     });
     return;
   }
   printKv([
+    ["gadget", `${VERSION} (node ${node})`],
     ["instance", session.origin],
     ["reachable", config.siteName ? `ok (${config.siteName})` : "ok"],
     ["sign-in", signIn.join(", ") || "none advertised"],
