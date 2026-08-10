@@ -43,14 +43,12 @@ shape will not run on the instance.
 plus [`cloudflared`](https://github.com/cloudflare/cloudflared) *only* if your instance sits
 behind Cloudflare Access (`brew install cloudflared`).
 
-Not on npm yet. Once it is:
-
 ```sh
 npx @nook-space/gadget-cli --help       # no install
 npm install -g @nook-space/gadget-cli   # then: gadget --help
 ```
 
-From source today:
+From source:
 
 ```sh
 git clone https://github.com/nook-space/gadgetCLI && cd gadgetCLI
@@ -87,8 +85,11 @@ it prints that install's own command instead of guessing.
 ## Quickstart
 
 ```sh
-gadget login https://os.your.dev --create --username you   # password via prompt or GADGET_PASSWORD
-gadget doctor                     # reachability, sign-in modes, auth state
+# sign in — one login per instance, kept as a named profile
+gadget login https://os.your.dev --create --username you  # password (prompt, or GADGET_PASSWORD)
+gadget login https://os.your.dev --vendor github          # "Continue with X": prints a URL to open
+gadget login https://os.your.dev                          # behind Cloudflare Access: detected, via cloudflared
+gadget doctor                                             # reachability, sign-in modes, auth state
 
 gadget new tracker && cd tracker  # scaffold: server.js, client.js, README.md
 gadget push --new                 # create workspace + gadget, link this directory
