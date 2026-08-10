@@ -22,7 +22,6 @@ One line per idea. Promote an idea by moving it into PLAN.md.
 
 ## Auth and security
 
-- Cloudflare Access mode — user JWT via `cloudflared access token`, `ws` socket with Origin header.
 - OS keychain token storage.
 
 ## Engineering

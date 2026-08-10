@@ -246,7 +246,7 @@ Exit: an agent completes the edit loop using only the skill text.
 ## Assumption ledger
 
 - The instance runs current cloudflare-os main (Aug 2026); the verified API surface holds.
-- Password or gatekeeper OAuth sign-in is enabled. Access mode is out of MVP scope.
+- Password, gatekeeper OAuth, or Cloudflare Access sign-in is enabled.
 - Node ≥ 22 provides the global WebSocket; openSession preflights it with a clear error.
 - Dev machine PATH node is 20: run every pnpm script with `PATH=/opt/homebrew/bin:$PATH` (24.5).
 - capnweb from Node: RPC, callback subscriptions, and ReadableStream transfer in both
@@ -285,6 +285,8 @@ Exit: an agent completes the edit loop using only the skill text.
   on OAuth-only instances, where first sign-in is the signup.
 - Use upstream's typed error codes (openGadget) in the renderer; distinguish null from thrown.
 - One RPC session per command; global deadline; dispose stubs in reverse order.
+- Cloudflare Access is detected, not configured: it is a property of the deployment.
+  `access` and `token` are orthogonal on a profile (identity vs. network gate).
 - Update checks run detached and one run behind; the CLI never self-mutates — `gadget update` is explicit.
 - The notice is human-only: suppressed for non-TTY stdout, CI, --json, and the opt-out env vars.
 - Skill installs are recorded so `skill refresh` reaches every copy; copies are snapshots, not links.
@@ -300,7 +302,8 @@ Exit: an agent completes the edit loop using only the skill text.
   but a same-file race is last-writer-wins; the losing edit survives only in server history.
   Same-file conflict recovery is copy-aside + pull --force + merge (diff --remote: idea.md).
   In-window cross-file foreign edits never advance the base silently (pre-resync base kept).
-- No Access mode in MVP ↔ avoids Origin-header and service-token complexity now.
+- Access support shells out to cloudflared ↔ one more prerequisite, but Cloudflare's own
+  tool owns the browser hop, caching, and refresh; we never touch that credential.
 - Live-only logs ↔ upstream stores none; `logs` is follow-mode by definition.
 - Zero-binding install only ↔ binding wiring needs browser OAuth; that is the security model.
 - Single-gadget projects ↔ covers the common case; multi-gadget is additive later.

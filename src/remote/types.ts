@@ -216,6 +216,9 @@ export interface PublicApi extends RpcTarget {
   getServerConfig(): Promise<ServerConfig>;
   startGatekeeperLogin(vendorId: string): Promise<{ url: string; attempt: RpcStub<LoginAttempt> }>;
   authenticate(token: string): Promise<AuthenticatedApi>;
+  // Authenticates from the Cloudflare Access session on the connection itself; the
+  // deployment must sit behind Access with CF_ACCESS_AUD configured.
+  authenticateFromCfAccess(): Promise<AuthenticatedApi>;
   login(username: string, passwordHash: Uint8Array): Promise<string | null>;
   createAccount(
     username: string,

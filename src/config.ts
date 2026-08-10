@@ -7,7 +7,10 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { CliError, EXIT } from "./errors.js";
 
-export type Profile = { url: string; token?: string };
+// `access` marks an instance behind Cloudflare Access: every connection attaches a
+// fresh cloudflared token. Orthogonal to `token` — Access can be the identity (no
+// token stored at all) or merely the network gate in front of a normal login.
+export type Profile = { url: string; token?: string; access?: boolean };
 export type Config = {
   current?: string;
   profiles: Record<string, Profile>;
@@ -29,7 +32,8 @@ function isProfile(value: unknown): value is Profile {
   return (
     typeof value === "object" && value !== null &&
     typeof (value as Profile).url === "string" &&
-    ["string", "undefined"].includes(typeof (value as Profile).token)
+    ["string", "undefined"].includes(typeof (value as Profile).token) &&
+    ["boolean", "undefined"].includes(typeof (value as Profile).access)
   );
 }
 

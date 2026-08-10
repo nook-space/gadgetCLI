@@ -39,10 +39,12 @@
     "capnweb": "^0.8.0",
     "commander": "^14.0.0",
     "hash-wasm": "^4.12.0",
+    "ws": "^8.21.3",
     "yjs": "^13.6.27"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
+    "@types/ws": "^8.18.1",
     "oxlint": "^1.76.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"

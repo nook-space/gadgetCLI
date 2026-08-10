@@ -9,6 +9,7 @@
 
 import { newWebSocketRpcSession } from "capnweb";
 import type { RpcStub } from "capnweb";
+import NodeWebSocket from "ws";
 import { CliError, EXIT } from "../errors.js";
 import type { PublicApi } from "./types.js";
 
@@ -70,6 +71,18 @@ export function withDeadline<T>(promise: Promise<T>, what: string, ms = RPC_DEAD
   return Promise.race([promise, deadline]).finally(() => clearTimeout(timer)) as Promise<T>;
 }
 
+// Node's global WebSocket follows the browser API and cannot set request headers, so an
+// Access-gated instance needs `ws`: the token rides the upgrade request as
+// `cf-access-token` (Access validates it at the edge and forwards the verified identity
+// to the worker), and the same-origin `Origin` satisfies the backend's cross-origin check.
+// capnweb accepts any socket exposing addEventListener/send/close, which `ws` does.
+function accessSocket(origin: string, token: string): WebSocket {
+  return new NodeWebSocket(apiUrl(origin), {
+    headers: { "cf-access-token": token },
+    origin,
+  }) as unknown as WebSocket;
+}
+
 export type Session = {
   api: RpcStub<PublicApi>;
   origin: string;
@@ -91,7 +104,12 @@ export function setSigintExitCode(code: number): void {
   sigintExitCode = code;
 }
 
-export function openSession(instance: string): Session {
+export type SessionOptions = {
+  // A Cloudflare Access JWT to present on the upgrade request. See remote/access.ts.
+  accessToken?: string;
+};
+
+export function openSession(instance: string, opts: SessionOptions = {}): Session {
   if (typeof WebSocket === "undefined") {
     throw new CliError(`gadget needs Node >= 22 (found ${process.versions.node})`, {
       hint: "this Node has no global WebSocket; upgrade Node",
@@ -101,7 +119,9 @@ export function openSession(instance: string): Session {
   const origin = instanceOrigin(instance);
   let api: RpcStub<PublicApi>;
   try {
-    api = newWebSocketRpcSession<PublicApi>(apiUrl(origin));
+    api = newWebSocketRpcSession<PublicApi>(
+      opts.accessToken ? accessSocket(origin, opts.accessToken) : apiUrl(origin),
+    );
   } catch (cause) {
     throw new CliError(`cannot connect to ${origin}`, { cause, exitCode: EXIT.rpc });
   }

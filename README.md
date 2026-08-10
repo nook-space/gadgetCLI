@@ -120,7 +120,12 @@ never connections.
   archives never sync, in either direction.
 - Sessions: one login per instance profile (`--profile` to switch, one login per instance);
   tokens live in `~/.config/gadget/config.json` (0600). `gadget logout [--all]` clears them
-  locally (no server-side revoke yet). Cloudflare Access instances are not supported yet.
+  locally (no server-side revoke yet).
+- Cloudflare Access instances work: `gadget login <url>` detects the gate and uses
+  `cloudflared` for the session (`brew install cloudflared`, one browser hop, then silent
+  refresh). An Access profile stores **no token at all** — identity is proven per
+  connection. Headless CI against an Access instance is not possible: Access service
+  tokens carry no email claim, which the instance requires.
 - Exit codes: 0 ok · 1 error · 2 usage · 3 auth · 4 conflict · 5 rpc.
 
 ## Development

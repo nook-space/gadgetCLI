@@ -41,6 +41,8 @@ program
   .option("--username <name>", "username (password mode)")
   .option("--name <display>", "display name for --create (default: username)")
   .option("--vendor <id>", "sign in via an OAuth provider instead of a password")
+  .option("--access", "force the Cloudflare Access path (normally auto-detected)")
+  .option("--no-access", "skip the Cloudflare Access probe")
   .action((url: string, cmdOpts: Record<string, string | boolean>) =>
     login(url, { ...program.opts(), ...cmdOpts }));
 

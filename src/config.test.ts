@@ -38,10 +38,23 @@ describe("config store", () => {
 
   test("valid JSON with a wrong shape is rejected, not crashed on", () => {
     mkdirSync(dirname(configPath()), { recursive: true });
-    for (const bad of ['{"profiles":null}', '{"profiles":[]}', '{"profiles":{"a":{"url":42}}}']) {
+    for (const bad of [
+      '{"profiles":null}',
+      '{"profiles":[]}',
+      '{"profiles":{"a":{"url":42}}}',
+      '{"profiles":{"a":{"url":"https://x","access":"yes"}}}',
+    ]) {
       writeFileSync(configPath(), bad);
       expect(() => loadConfig()).toThrow(/unexpected shape/);
     }
+  });
+
+  test("a Cloudflare Access profile round-trips and stores no token", () => {
+    // Access is the identity: nothing secret goes to disk, unlike password/OAuth.
+    const config = { current: "nook", profiles: { nook: { url: "https://nook.example", access: true } } };
+    saveConfig(config);
+    expect(loadConfig()).toEqual(config);
+    expect(JSON.stringify(loadConfig())).not.toContain("token");
   });
 
   test("unreadable file is an error, not a logged-out state", () => {

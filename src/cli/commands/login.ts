@@ -1,7 +1,8 @@
-import { loadConfig, saveConfig } from "../../config.js";
+import { loadConfig, saveConfig, type Profile } from "../../config.js";
 import { CliError, EXIT } from "../../errors.js";
+import { isAccessProtected, requireAccessToken } from "../../remote/access.js";
 import { hashPassword } from "../../remote/auth.js";
-import { authenticate } from "../../remote/authed.js";
+import { authenticate, tryAuthenticateViaAccess } from "../../remote/authed.js";
 import { instanceOrigin as instanceOriginOf, openSession, type Session } from "../../remote/session.js";
 import type { AuthVendorInfo, ServerConfig } from "../../remote/types.js";
 import { prompt, readPassword } from "../prompt.js";
@@ -19,33 +20,68 @@ export type LoginOptions = {
   username?: string;
   name?: string;
   vendor?: string;
+  // commander folds --access / --no-access into one tri-state: true, false, undefined.
+  access?: boolean;
 };
 
 export async function login(url: string, opts: LoginOptions): Promise<void> {
+  const origin = instanceOriginOf(url);
+
+  // Cloudflare Access guards the whole hostname, so a token is needed before /api is
+  // reachable at all. Detect rather than ask: it is a property of the deployment, not a
+  // user choice. --access forces the path, --no-access skips the probe.
+  const useAccess =
+    opts.access === false ? false : opts.access === true || (await isAccessProtected(origin));
+  const accessToken = useAccess ? requireAccessToken(origin, true) : undefined;
+
   // Discovery on a short-lived session: the socket must not sit open across
   // human-paced prompting and the slow hash, where idle timeouts could kill it.
   let config: ServerConfig;
   {
-    using discovery = openSession(url);
+    using discovery = openSession(url, { accessToken });
     config = await discovery.rpc(discovery.api.getServerConfig(), "getServerConfig()");
   }
 
-  const plan = planLogin(config, opts, new URL(instanceOriginOf(url)).origin);
+  // Access as the identity: the deployment maps the verified Access email to an account,
+  // so there is no app-level login and no token to store.
+  if (accessToken) {
+    using session = openSession(url, { accessToken });
+    const authed = await tryAuthenticateViaAccess(session);
+    if (authed) {
+      const me = await session.rpc(authed.whoami(), "whoami()");
+      storeProfile(opts.profile, { url: session.origin, access: true });
+      console.log(`logged in as ${me.name} (${me.id}) via Cloudflare Access`);
+      return;
+    }
+    // Otherwise Access is only the network gate; fall through to a normal login,
+    // which keeps riding the token from here on.
+  }
+
+  const plan = planLogin(config, opts, new URL(origin).origin);
 
   if (plan.mode === "oauth") {
     // OAuth keeps one session for the whole flow: attempt.wait() lives on it.
-    using session = openSession(url);
+    using session = openSession(url, { accessToken });
     const token = await oauthLogin(session, config, opts.vendor);
-    await finishLogin(session, token, opts.profile);
+    await finishLogin(session, token, opts.profile, accessToken !== undefined);
     return;
   }
 
   const { username, hash } = await gatherCredentials(opts);
-  using session = openSession(url);
+  using session = openSession(url, { accessToken });
   const token = plan.create
     ? await createAccount(session, config, username, opts.name ?? username, hash)
     : await passwordLogin(session, username, hash);
-  await finishLogin(session, token, opts.profile);
+  await finishLogin(session, token, opts.profile, accessToken !== undefined);
+}
+
+function storeProfile(profileOpt: string | undefined, profile: Profile): void {
+  const store = loadConfig();
+  const profileName = profileOpt ?? new URL(profile.url).host;
+  store.profiles[profileName] = profile;
+  store.current = profileName;
+  saveConfig(store);
+  console.log(`profile ${profileName} is now current`);
 }
 
 export type LoginPlan = { mode: "oauth" } | { mode: "password"; create: boolean };
@@ -71,18 +107,17 @@ export function planLogin(config: ServerConfig, opts: LoginOptions, origin: stri
 }
 
 // Verify the token and learn who we are before storing anything.
-async function finishLogin(session: Session, token: string, profileOpt?: string): Promise<void> {
+async function finishLogin(
+  session: Session,
+  token: string,
+  profileOpt?: string,
+  access = false,
+): Promise<void> {
   const authed = await authenticate(session, token, "(new login)");
   const me = await session.rpc(authed.whoami(), "whoami()");
 
-  const store = loadConfig();
-  const profileName = profileOpt ?? new URL(session.origin).host;
-  store.profiles[profileName] = { url: session.origin, token };
-  store.current = profileName;
-  saveConfig(store);
-
   console.log(`logged in as ${me.name} (${me.id})`);
-  console.log(`profile ${profileName} is now current`);
+  storeProfile(profileOpt, { url: session.origin, token, ...(access && { access: true }) });
 }
 
 async function gatherCredentials(
