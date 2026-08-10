@@ -1,0 +1,79 @@
+name: release
+
+# Tags are the release trigger:
+#   v1.2.3        stable      → GitHub Release + npm publish (dist-tag latest)
+#   v1.2.3-beta.1 prerelease  → GitHub Release (marked prerelease) + npm dist-tag next
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the GitHub Release
+  id-token: write # npm provenance / trusted publishing (OIDC, no token needed)
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # version comes from package.json's packageManager
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      # A tag that disagrees with package.json would publish a version nobody asked
+      # for — and version.ts is checked against package.json by the test suite.
+      - name: tag matches package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          echo "tag=$TAG package.json=$PKG"
+          test "$TAG" = "$PKG"
+
+      - run: pnpm check
+      - run: pnpm test
+
+      # Pack ONCE: the same bytes are attached to the release and published to npm,
+      # so the artifact people download is the artifact npm serves.
+      - name: pack
+        run: |
+          pnpm pack --pack-destination dist-release
+          cd dist-release && sha256sum *.tgz > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      - name: classify the tag
+        id: tag
+        run: |
+          case "$GITHUB_REF_NAME" in
+            *-*) echo "prerelease=true" >> "$GITHUB_OUTPUT" ;;
+            *)   echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: github release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            $([ "${{ steps.tag.outputs.prerelease }}" = "true" ] && echo --prerelease) \
+            dist-release/*
+
+      # npm >= 11.5.1 is what understands OIDC trusted publishing; with no NPM_TOKEN
+      # secret set, publishing authenticates through the id-token permission above.
+      - name: upgrade npm for trusted publishing
+        run: npm install -g npm@latest
+
+      - name: publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          TARBALL="$(ls dist-release/*.tgz)"
+          if [ "${{ steps.tag.outputs.prerelease }}" = "true" ]; then
+            npm publish "$TARBALL" --provenance --access public --tag next
+          else
+            npm publish "$TARBALL" --provenance --access public
+          fi

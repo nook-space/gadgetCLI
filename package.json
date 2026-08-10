@@ -1,0 +1,60 @@
+{
+  "name": "@nook-space/gadget-cli",
+  "version": "0.1.0",
+  "description": "Unofficial CLI for self-hosted Cloudflare OS instances: make and push gadgets from the terminal.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "gadget": "./dist/cli/main.js"
+  },
+  "files": [
+    "dist",
+    "skill"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nook-space/gadgetCLI.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nook-space/gadgetCLI/issues"
+  },
+  "homepage": "https://github.com/nook-space/gadgetCLI#readme",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "packageManager": "pnpm@10.29.3",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit && oxlint src tests",
+    "prepack": "pnpm build",
+    "test": "pnpm build && vitest run",
+    "gadget": "node dist/cli/main.js",
+    "prepare": "pnpm build"
+  },
+  "dependencies": {
+    "capnweb": "^0.8.0",
+    "commander": "^14.0.0",
+    "hash-wasm": "^4.12.0",
+    "ws": "^8.21.3",
+    "yjs": "^13.6.27"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/ws": "^8.18.1",
+    "oxlint": "^1.76.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  },
+  "author": "nook-space",
+  "keywords": [
+    "cloudflare-os",
+    "gadgets",
+    "cli",
+    "durable-objects",
+    "capnweb"
+  ]
+}

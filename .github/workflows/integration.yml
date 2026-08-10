@@ -1,0 +1,82 @@
+name: integration
+
+# Boots a real Cloudflare OS instance and runs the live suite against it.
+#
+# This is also the upstream-drift canary. gadgetCLI is a client of an internal,
+# fast-moving API (see DESIGN.md's standing risk), so a nightly run against
+# upstream's main branch is how we learn the API moved before a user does.
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/remote/**" # the only code that talks to upstream
+      - "src/sync/**"
+      - ".github/workflows/integration.yml"
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: cli
+      - uses: actions/checkout@v4
+        with:
+          repository: cloudflare/cloudflare-os
+          path: cloudflare-os
+
+      - uses: pnpm/action-setup@v4 # version comes from package.json's packageManager
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: build the cli
+        working-directory: cli
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: boot cloudflare-os
+        working-directory: cloudflare-os
+        env:
+          CI: "true"
+        run: |
+          # run-local shells out to a bare `pnpm`, and this repo pins a different pnpm
+          # than ours — a shim forwards it to corepack so each repo gets its own version.
+          mkdir -p /tmp/shim
+          printf '#!/bin/sh\nexec corepack pnpm "$@"\n' > /tmp/shim/pnpm
+          chmod +x /tmp/shim/pnpm
+          export PATH="/tmp/shim:$PATH"
+          corepack enable
+          nohup pnpm run-local > /tmp/instance.log 2>&1 &
+          echo "waiting for http://localhost:8787 ..."
+          for i in $(seq 1 90); do
+            if curl -fsS -o /dev/null --max-time 3 http://localhost:8787/; then
+              echo "up after ~$((i * 5))s"; exit 0
+            fi
+            sleep 5
+          done
+          echo "instance never came up:"; tail -50 /tmp/instance.log; exit 1
+
+      - name: live suite
+        working-directory: cli
+        env:
+          GADGET_TEST_URL: http://localhost:8787
+        run: pnpm test
+
+      - name: end-to-end demo
+        working-directory: cli
+        run: bash scripts/demo.sh http://localhost:8787
+
+      - name: instance log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-os-log
+          path: /tmp/instance.log
+          if-no-files-found: ignore
+          retention-days: 14

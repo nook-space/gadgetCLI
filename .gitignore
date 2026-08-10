@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-release/
+.gadget/
+*.gadget
+*.tgz
+*.tsbuildinfo
+coverage/
+.env*
+.DS_Store
+.vscode/
+.idea/

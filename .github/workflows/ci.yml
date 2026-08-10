@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md"]
+  pull_request:
+    paths-ignore: ["**.md"]
+
+# A newer push to the same branch/PR makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The matrix IS the cross-platform claim: mac and Linux, Node 22 (our minimum)
+  # and 24. Public repos get unlimited free Actions minutes, so macOS runs on every
+  # push and PR despite its 10x billing multiplier. Integration tests skip themselves
+  # when GADGET_TEST_URL is unset, so this needs no instance; the integration
+  # workflow covers the wire.
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: [22, 24]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # version comes from package.json's packageManager
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm test
+
+  # Build the exact tarball a release would publish, so every PR can be installed
+  # and inspected before it is tagged.
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # version comes from package.json's packageManager
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm pack
+      - name: verify the tarball ships dist and the skill, and nothing else
+        run: |
+          tar tzf *.tgz | sort | tee contents.txt
+          grep -q '^package/dist/cli/main.js$' contents.txt
+          grep -q '^package/skill/SKILL.md$' contents.txt
+          ! grep -q '\.test\.js$' contents.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-tarball
+          path: "*.tgz"
+          retention-days: 14
