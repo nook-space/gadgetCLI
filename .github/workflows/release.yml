@@ -71,6 +71,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          NAME="$(node -p "require('./package.json').name")"
+          VERSION="$(node -p "require('./package.json').version")"
+          # The first release is published by hand (npm configures trusted publishing on
+          # an existing package), so a tag pushed afterwards must not fail on a version
+          # that is already there. Re-running a release is then always safe.
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "$NAME@$VERSION is already on npm — skipping publish"
+            exit 0
+          fi
           TARBALL="$(ls dist-release/*.tgz)"
           if [ "${{ steps.tag.outputs.prerelease }}" = "true" ]; then
             npm publish "$TARBALL" --provenance --access public --tag next
