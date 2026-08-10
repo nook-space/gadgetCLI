@@ -1,6 +1,6 @@
 {
   "name": "@nook-space/gadget-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Unofficial CLI for self-hosted Cloudflare OS instances: make and push gadgets from the terminal.",
   "type": "module",
   "license": "MIT",
