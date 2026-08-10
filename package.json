@@ -1,5 +1,5 @@
 {
-  "name": "gadget-cli",
+  "name": "@nook-space/gadget-cli",
   "version": "0.1.0",
   "description": "Make and push gadgets to a self-hosted Cloudflare OS instance from the terminal.",
   "type": "module",
@@ -14,6 +14,19 @@
     "dist",
     "skill"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nook-space/gadgetCLI.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nook-space/gadgetCLI/issues"
+  },
+  "homepage": "https://github.com/nook-space/gadgetCLI#readme",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "packageManager": "pnpm@10.29.3",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit && oxlint src tests",

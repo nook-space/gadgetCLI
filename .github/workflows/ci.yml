@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch/PR makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # The matrix is the claim: mac and Linux, Node 22 (minimum) and 24 (current).
+    # Integration tests skip themselves when GADGET_TEST_URL is unset, so this job
+    # stays fast and needs no instance; the integration workflow covers the wire.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: [22, 24]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm test
+
+  package:
+    # Build the exact tarball a release would publish, so every PR can be installed
+    # and inspected before it is tagged.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm pack
+      - name: verify the tarball ships dist and the skill, and nothing else
+        run: |
+          tar tzf *.tgz | sort | tee contents.txt
+          grep -q '^package/dist/cli/main.js$' contents.txt
+          grep -q '^package/skill/SKILL.md$' contents.txt
+          ! grep -q '\.test\.js$' contents.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-tarball
+          path: "*.tgz"
