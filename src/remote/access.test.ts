@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { isAccessChallenge } from "./access.js";
+import { cloudflaredInstallHint, isAccessChallenge } from "./access.js";
 
 describe("isAccessChallenge", () => {
   test("recognizes an Access redirect by its login host", () => {
@@ -19,5 +19,14 @@ describe("isAccessChallenge", () => {
     expect(isAccessChallenge("https://example.com/login", "")).toBe(false);
     expect(isAccessChallenge("", "Bearer realm=x")).toBe(false);
     expect(isAccessChallenge("", "")).toBe(false);
+  });
+});
+
+describe("cloudflaredInstallHint", () => {
+  test("brew on a Mac, the download page everywhere else", () => {
+    expect(cloudflaredInstallHint("darwin")).toContain("brew install cloudflared");
+    for (const platform of ["linux", "win32"] as const) {
+      expect(cloudflaredInstallHint(platform), platform).toContain("developers.cloudflare.com");
+    }
   });
 });

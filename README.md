@@ -39,9 +39,12 @@ shape will not run on the instance.
 
 ## Install
 
-**Prerequisites:** Node >= 22 (the global `WebSocket` the transport needs arrived in 22),
-plus [`cloudflared`](https://github.com/cloudflare/cloudflared) *only* if your instance sits
-behind Cloudflare Access (`brew install cloudflared`).
+**Prerequisites:** Node >= 22 — the global `WebSocket` the transport needs arrived in 22.
+
+If (and only if) your instance sits behind **Cloudflare Access**, you also need
+[`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)
+(`brew install cloudflared` on macOS). The CLI detects the gate and asks for it only then,
+so nobody installs it who does not need it.
 
 ```sh
 npx @nook-space/gadget-cli --help       # no install

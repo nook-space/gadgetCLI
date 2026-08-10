@@ -38,6 +38,13 @@ export function isAccessChallenge(location: string, wwwAuthenticate: string): bo
   return /cloudflareaccess\.com/i.test(location) || /cloudflare-access/i.test(wwwAuthenticate);
 }
 
+/** How to get cloudflared on this platform. brew is only the answer on a Mac. */
+export function cloudflaredInstallHint(platform = process.platform): string {
+  return platform === "darwin"
+    ? "install it: brew install cloudflared"
+    : "install it: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/";
+}
+
 export function cloudflaredInstalled(): boolean {
   try {
     return spawnSync("cloudflared", ["--version"], { stdio: "ignore" }).status === 0;
@@ -67,7 +74,7 @@ export function accessToken(origin: string): string | undefined {
 export function requireAccessToken(origin: string, interactive = false): string {
   if (!cloudflaredInstalled()) {
     throw new CliError("this instance is behind Cloudflare Access, which needs cloudflared", {
-      hint: "install it: brew install cloudflared",
+      hint: cloudflaredInstallHint(),
       exitCode: EXIT.auth,
     });
   }

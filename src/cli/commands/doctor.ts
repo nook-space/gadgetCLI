@@ -1,6 +1,8 @@
 import { loadConfig, resolveProfile, type Config } from "../../config.js";
 import { CliError, EXIT } from "../../errors.js";
-import { accessToken, cloudflaredInstalled, isAccessProtected } from "../../remote/access.js";
+import {
+  accessToken, cloudflaredInstalled, cloudflaredInstallHint, isAccessProtected,
+} from "../../remote/access.js";
 import { authenticate, tryAuthenticateViaAccess } from "../../remote/authed.js";
 import { instanceOrigin, openSession } from "../../remote/session.js";
 import { VERSION } from "../../version.js";
@@ -87,7 +89,9 @@ function report(opts: DoctorOptions, r: Report): void {
 
 function describeAccess(gated: boolean, hasToken: boolean, origin: string): string {
   if (!gated) return "not in use";
-  if (!cloudflaredInstalled()) return "required — cloudflared is not installed (brew install cloudflared)";
+  if (!cloudflaredInstalled()) {
+    return `required — cloudflared is not installed; ${cloudflaredInstallHint()}`;
+  }
   return hasToken
     ? "required — session ok"
     : `required — no session (run: cloudflared access login ${origin})`;
