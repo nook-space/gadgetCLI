@@ -27,9 +27,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
+      - uses: pnpm/action-setup@v4 # version comes from package.json's packageManager
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
@@ -44,9 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
+      - uses: pnpm/action-setup@v4 # version comes from package.json's packageManager
       - uses: actions/setup-node@v4
         with:
           node-version: 22

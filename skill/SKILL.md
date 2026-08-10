@@ -65,6 +65,13 @@ supplies routing, hosting, sandboxing, and deploy; you supply only the files bel
   wired by the human in the workshop UI — ask for connections, never fake them.
 - Server-to-client callbacks: `.dup()` the stub you keep, watch `onRpcBroken`, and
   implement `[Symbol.dispose]()`. Long-lived callbacks need the `ctx.restore()` pattern.
+- **Never feature-detect on an RPC stub.** Every property of a stub is callable, so
+  `typeof stub.getSession === "function"` is always true and proves nothing — it turns
+  into a failing call at runtime, not a fallback. A gatekeeper binding IS the session:
+  call its methods directly (`env.REPO.listPullRequests(...)`).
+- **Do not hardcode one binding name.** A human names the binding in the Connections
+  panel, so `REPO` may arrive as `GITHUB_REPO`. Accept a short list of conventional
+  names and say in your README which ones you read.
 - Real-time collaboration is normal: assume several clients, broadcast via storage + polling
   or callback lists.
 
