@@ -13,15 +13,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Every push and PR: Linux on both supported Node versions. Fast and cheap.
-  # Integration tests skip themselves when GADGET_TEST_URL is unset, so this needs
-  # no instance; the integration workflow covers the wire.
+  # The matrix IS the cross-platform claim: mac and Linux, Node 22 (our minimum)
+  # and 24. Public repos get unlimited free Actions minutes, so macOS runs on every
+  # push and PR despite its 10x billing multiplier. Integration tests skip themselves
+  # when GADGET_TEST_URL is unset, so this needs no instance; the integration
+  # workflow covers the wire.
   check:
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest]
         node: [22, 24]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -30,25 +33,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm check
-      - run: pnpm test
-
-  # macOS bills at 10x Linux, so it runs on main (and nightly, via integration.yml)
-  # rather than on every PR push. One leg on our minimum Node is enough to catch a
-  # platform break; the daily cadence is what matters, not per-commit coverage.
-  check-macos:
-    if: github.event_name == 'push'
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
